@@ -2,7 +2,7 @@
 
 **Current Phase**: Phase 2 - Locale foundation
 **Current Stage**: Implementation
-**Last Checkpoint**: `43d0b5c` - Phase 1 architecture and inventory
+**Last Checkpoint**: `a8c00e2` - Locale foundation and settings migration
 **Planning Doc**: `docs/LOCALIZATION_PLAN.md`
 
 ## Scope Guard
@@ -62,13 +62,22 @@ automated checks, actual UI inspection, upstream/fork state, and 5S accounting.
 - [ ] Convert first-party UI and client feedback by subsystem ← **CURRENT**
 - [ ] Add missing-string inventory gate
 
-**Next Action**: Implement and test the locale crate and backwards-compatible
-settings field, then convert the app shell, connection, and preferences before
-the larger mapper and automation surfaces.
+**Next Action**: Convert the app shell, social/cloud, mapper, and automation
+surfaces, then enforce the missing-string inventory gate.
 
 ## Phase 3: CJK and legacy encoding ⏸️
 
 **Spec**: `docs/LOCALIZATION_PLAN.md#phase-3-cjk-and-legacy-encoding`
+
+**Progress**:
+
+- [x] Bundle licensed Traditional Chinese UI and terminal fonts
+- [x] Verify embedded family names and representative Traditional Chinese glyphs
+- [x] Persist per-server UTF-8 / Big5 choice with UTF-8 migration default
+- [x] Stream-decode inbound text after Telnet framing and before VT parsing
+- [x] Encode outbound semantic text without transcoding raw protocol frames
+- [x] Test split Big5 sequences, malformed input, ANSI, outbound text, and raw frames
+- [ ] Verify CJK terminal cells, wrapping, selection, links, input, and clipboard visually
 
 ## Phase 4: Product verification and publication ⏸️
 

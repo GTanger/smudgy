@@ -136,6 +136,7 @@ pub fn palette_by_name(name: &str) -> &'static TerminalPalette {
 
 /// Font families bundled with the app (always available in the picker).
 pub const BUNDLED_FONT_FAMILIES: &[&str] = &[
+    "Noto Sans Mono CJK TC",
     "Geist Mono",
     "Monaspace Argon Var",
     "Monaspace Krypton Var",

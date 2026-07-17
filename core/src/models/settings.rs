@@ -361,7 +361,12 @@ impl CommandInputBehavior {
 
 impl std::fmt::Display for CommandInputBehavior {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.label())
+        let key = match self {
+            CommandInputBehavior::SelectAllClearOnBlur => "preferences-input-select-clear",
+            CommandInputBehavior::SelectAll => "preferences-input-select",
+            CommandInputBehavior::Clear => "preferences-input-clear",
+        };
+        f.write_str(&smudgy_i18n::translate(key))
     }
 }
 

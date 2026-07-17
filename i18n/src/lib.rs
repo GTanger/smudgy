@@ -3,8 +3,9 @@
 //! English is the authoritative fallback. The active locale is process-wide so
 //! core-generated client feedback and every window use one consistent language.
 
+use std::collections::HashMap;
 use std::fmt;
-use std::sync::LazyLock;
+use std::sync::{LazyLock, Mutex};
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use fluent_bundle::concurrent::FluentBundle;
@@ -72,6 +73,8 @@ impl Locale {
 }
 
 static ACTIVE_LOCALE: AtomicU8 = AtomicU8::new(Locale::English as u8);
+static STATIC_TRANSLATIONS: LazyLock<Mutex<HashMap<(u8, String), &'static str>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 static EN_US: LazyLock<FluentBundle<FluentResource>> =
     LazyLock::new(|| make_bundle("en-US", EN_US_SOURCE));
@@ -162,6 +165,26 @@ pub fn translate(id: &str) -> String {
     translate_with(id, &[])
 }
 
+/// Translate a non-interpolated message into a process-lifetime string.
+///
+/// Some Iced controls borrow placeholders instead of owning them. This cache
+/// leaks each `(locale, message id)` at most once, so runtime locale switches
+/// remain safe without leaking once per rendered frame.
+#[must_use]
+pub fn translate_static(id: &str) -> &'static str {
+    let locale = current_locale() as u8;
+    let key = (locale, id.to_string());
+    let mut cache = STATIC_TRANSLATIONS
+        .lock()
+        .expect("static translation cache lock");
+    if let Some(value) = cache.get(&key) {
+        return value;
+    }
+    let value: &'static str = Box::leak(translate(id).into_boxed_str());
+    cache.insert(key, value);
+    value
+}
+
 /// Translate a message with string variables, with English fallback.
 #[must_use]
 pub fn translate_with(id: &str, values: &[(&str, String)]) -> String {
@@ -204,6 +227,15 @@ macro_rules! t {
     }};
 }
 
+/// Translate a non-interpolated message for an API that requires a borrowed
+/// process-lifetime string.
+#[macro_export]
+macro_rules! ts {
+    ($id:literal $(,)?) => {
+        $crate::translate_static($id)
+    };
+}
+
 #[cfg(test)]
 fn catalog_ids(source: &str) -> std::collections::BTreeSet<&str> {
     source
@@ -221,6 +253,8 @@ fn catalog_ids(source: &str) -> std::collections::BTreeSet<&str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    static LOCALE_TEST_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn locale_tags_distinguish_traditional_and_simplified_chinese() {
@@ -244,6 +278,9 @@ mod tests {
 
     #[test]
     fn interpolation_and_locale_switching_work() {
+        let _guard = LOCALE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         activate(LocalePreference::English);
         assert_eq!(t!("welcome-name", "name" => "Mira"), "Welcome, Mira.");
         activate(LocalePreference::TraditionalChinese);
@@ -251,7 +288,25 @@ mod tests {
     }
 
     #[test]
+    fn static_translations_are_cached_per_locale() {
+        let _guard = LOCALE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        activate(LocalePreference::English);
+        let english = ts!("action-cancel");
+        activate(LocalePreference::TraditionalChinese);
+        let traditional_chinese = ts!("action-cancel");
+
+        assert_eq!(english, "Cancel");
+        assert_eq!(traditional_chinese, "取消");
+        assert_ne!(english, traditional_chinese);
+    }
+
+    #[test]
     fn unknown_message_is_visible_instead_of_silently_blank() {
+        let _guard = LOCALE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         activate(LocalePreference::English);
         assert_eq!(translate("not-a-real-message"), "⟦not-a-real-message⟧");
     }

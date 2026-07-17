@@ -9,6 +9,12 @@ pub mod fonts {
     pub const GEIST_VF: Font = Font::with_name("Geist");
     pub const GEIST_MONO_VF_BYTES: &[u8] = include_bytes!("../../assets/fonts/GeistMonoVF.ttf");
     pub const GEIST_MONO_VF: Font = Font::with_name("Geist Mono");
+    pub const NOTO_SANS_TC_BYTES: &[u8] =
+        include_bytes!("../../assets/fonts/NotoSansTC-Regular.otf");
+    pub const NOTO_SANS_TC: Font = Font::with_name("Noto Sans TC");
+    pub const NOTO_SANS_MONO_CJK_TC_BYTES: &[u8] =
+        include_bytes!("../../assets/fonts/NotoSansMonoCJKtc-Regular.otf");
+    pub const NOTO_SANS_MONO_CJK_TC: Font = Font::with_name("Noto Sans Mono CJK TC");
     pub const BOOTSTRAP_ICONS_BYTES: &[u8] =
         include_bytes!("../../assets/fonts/bootstrap-icons.ttf");
     pub const BOOTSTRAP_ICONS: Font = Font::with_name("bootstrap-icons");
@@ -76,6 +82,11 @@ pub mod fonts {
             let cases: &[(&[u8], &str)] = &[
                 (super::GEIST_VF_BYTES, "Geist"),
                 (super::GEIST_MONO_VF_BYTES, "Geist Mono"),
+                (super::NOTO_SANS_TC_BYTES, "Noto Sans TC"),
+                (
+                    super::NOTO_SANS_MONO_CJK_TC_BYTES,
+                    "Noto Sans Mono CJK TC",
+                ),
                 (super::BOOTSTRAP_ICONS_BYTES, "bootstrap-icons"),
                 (super::MONASPACE_ARGON_BYTES, "Monaspace Argon Var"),
                 (super::MONASPACE_KRYPTON_BYTES, "Monaspace Krypton Var"),
@@ -100,6 +111,30 @@ pub mod fonts {
                     families.contains(expected),
                     "expected family {expected:?}, TTF reports {families:?}"
                 );
+            }
+        }
+
+        #[test]
+        fn bundled_traditional_chinese_fonts_cover_representative_glyphs() {
+            const REPRESENTATIVE_TEXT: &str = "白塔半島樹海臺灣，。！？（）「」";
+            let cases: &[(&[u8], &str)] = &[
+                (super::NOTO_SANS_TC_BYTES, "Noto Sans TC"),
+                (
+                    super::NOTO_SANS_MONO_CJK_TC_BYTES,
+                    "Noto Sans Mono CJK TC",
+                ),
+            ];
+
+            for (bytes, family) in cases {
+                let face = ttf_parser::Face::parse(bytes, 0)
+                    .unwrap_or_else(|error| panic!("failed to parse {family}: {error:?}"));
+                for character in REPRESENTATIVE_TEXT.chars() {
+                    assert!(
+                        face.glyph_index(character).is_some(),
+                        "{family} is missing U+{:04X} {character:?}",
+                        character as u32
+                    );
+                }
             }
         }
     }

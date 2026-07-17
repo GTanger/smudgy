@@ -1,26 +1,24 @@
 //! Server CRUD: async wrappers, form submission handling, and server-side views.
 
 use iced::widget::{
-    Column, Row, TextInput, button, column, scrollable,
+    Column, Row, TextInput, button, column, pick_list, scrollable,
     space::{horizontal as horizontal_space, vertical as vertical_space},
     text,
 };
 use iced::{Length, Pixels, Task};
 use log::warn;
 use validator::Validate;
+use smudgy_i18n::{t, ts};
 
 use crate::theme::Element;
 use crate::theme::builtins;
 
-use smudgy_core::models::server::{Server, ServerConfig};
+use smudgy_core::models::server::{Server, ServerConfig, ServerEncoding};
 
 use super::{
     Message, ServerCrudAction, ServerFormField, State, server_host_input_id, server_name_input_id,
     server_port_input_id,
 };
-
-/// Helper text shown beneath the port field in the server form.
-const PORT_HELP: &str = "Usually 23 or 4000.";
 
 // --- Server CRUD Async Wrappers ---
 
@@ -57,19 +55,20 @@ pub(super) fn handle_submit_server_form(state: &mut State) -> Task<Message> {
             let port = match state.server_form_data.port.trim().parse::<u16>() {
                 Ok(p) => p,
                 Err(_) => {
-                    state.server_crud_error =
-                        Some("Invalid port number. Must be between 1 and 65535.".to_string());
+                    state.server_crud_error = Some(t!("server-error-port"));
                     return Task::none();
                 }
             };
-            let config = ServerConfig::new(state.server_form_data.host.trim().to_string(), port);
+            let mut config =
+                ServerConfig::new(state.server_form_data.host.trim().to_string(), port);
+            config.encoding = state.server_form_data.encoding;
             if let Err(e) = config.validate() {
-                state.server_crud_error = Some(format!("Configuration error: {e}"));
+                state.server_crud_error = Some(t!("server-error-config", "error" => e));
                 return Task::none();
             }
             let name = state.server_form_data.name.trim().to_string();
             if name.is_empty() {
-                state.server_crud_error = Some("Server name cannot be empty.".to_string());
+                state.server_crud_error = Some(t!("server-error-name-empty"));
                 return Task::none();
             }
             Task::perform(create_server_async(name, config), Message::ServerCreated)
@@ -78,8 +77,7 @@ pub(super) fn handle_submit_server_form(state: &mut State) -> Task<Message> {
             let port = match state.server_form_data.port.trim().parse::<u16>() {
                 Ok(p) => p,
                 Err(_) => {
-                    state.server_crud_error =
-                        Some("Invalid port number. Must be between 1 and 65535.".to_string());
+                    state.server_crud_error = Some(t!("server-error-port"));
                     return Task::none();
                 }
             };
@@ -93,8 +91,9 @@ pub(super) fn handle_submit_server_form(state: &mut State) -> Task<Message> {
                 .map_or_else(|| ServerConfig::new(String::new(), 0), |s| s.config.clone());
             config.host = state.server_form_data.host.trim().to_string();
             config.port = port;
+            config.encoding = state.server_form_data.encoding;
             if let Err(e) = config.validate() {
-                state.server_crud_error = Some(format!("Configuration error: {e}"));
+                state.server_crud_error = Some(t!("server-error-config", "error" => e));
                 return Task::none();
             }
             Task::perform(
@@ -104,13 +103,12 @@ pub(super) fn handle_submit_server_form(state: &mut State) -> Task<Message> {
         }
         Some(ServerCrudAction::ConfirmDelete(_)) => {
             warn!("Error: SubmitServerForm called during ConfirmDelete state.");
-            state.server_crud_error =
-                Some("Unexpected error: Cannot submit while confirming delete.".to_string());
+            state.server_crud_error = Some(t!("server-error-action-delete"));
             Task::none()
         }
         None => {
             warn!("Error: SubmitServerForm called without a ServerCrudAction set.");
-            state.server_crud_error = Some("Unexpected error: No action in progress.".to_string());
+            state.server_crud_error = Some(t!("server-error-action-missing"));
             Task::none()
         }
     }
@@ -123,11 +121,11 @@ pub(super) fn handle_submit_server_form(state: &mut State) -> Task<Message> {
 pub(super) fn view_server_list(state: &State) -> Element<'_, Message> {
     let server_list_content: Element<Message> = if state.servers.is_empty() {
         if state.is_loading_servers {
-            column![text("Loading servers…").style(builtins::text::muted)]
+            column![text(t!("servers-loading")).style(builtins::text::muted)]
         } else {
             // The no-servers welcome/CTA lives in the right pane; keep the
             // rail itself quiet.
-            column![text("No servers yet.").style(builtins::text::muted)]
+            column![text(t!("servers-empty")).style(builtins::text::muted)]
         }
         .into()
     } else {
@@ -160,9 +158,9 @@ pub(super) fn view_server_list(state: &State) -> Element<'_, Message> {
     };
 
     column![
-        text("Servers").size(12).style(builtins::text::muted),
+        text(t!("servers-title")).size(12).style(builtins::text::muted),
         scrollable(server_list_content).height(Length::Fill),
-        button(text("+ New Server"))
+        button(text(t!("servers-new")))
             .width(Length::Fill)
             .padding([6, 10])
             .style(builtins::button::secondary)
@@ -183,8 +181,8 @@ pub(super) fn view_server_form<'a>(
         ServerCrudAction::Create => {
             // --- Create Form ---
             let name_field = column![
-                text("Name").size(13).style(builtins::text::muted),
-                TextInput::new("e.g. ArcticMud", &state.server_form_data.name)
+                text(t!("server-name")).size(13).style(builtins::text::muted),
+                TextInput::new(ts!("server-name-placeholder"), &state.server_form_data.name)
                     .id(server_name_input_id())
                     .on_input(|val| Message::UpdateServerFormField(ServerFormField::Name, val))
                     .on_submit(Message::SubmitServerForm),
@@ -192,7 +190,7 @@ pub(super) fn view_server_form<'a>(
             .spacing(4);
 
             let host_field = column![
-                text("Host").size(13).style(builtins::text::muted),
+                text(t!("server-host")).size(13).style(builtins::text::muted),
                 TextInput::new("mud.example.com", &state.server_form_data.host)
                     .id(server_host_input_id())
                     .on_input(|val| Message::UpdateServerFormField(ServerFormField::Host, val))
@@ -201,30 +199,31 @@ pub(super) fn view_server_form<'a>(
             .spacing(4);
 
             let port_field = column![
-                text("Port").size(13).style(builtins::text::muted),
+                text(t!("server-port")).size(13).style(builtins::text::muted),
                 TextInput::new("", &state.server_form_data.port)
                     .id(server_port_input_id())
                     .width(Length::Fixed(120.0))
                     .on_input(|val| Message::UpdateServerFormField(ServerFormField::Port, val))
                     .on_submit(Message::SubmitServerForm),
-                text(PORT_HELP).size(12).style(builtins::text::muted),
+                text(t!("server-port-help")).size(12).style(builtins::text::muted),
             ]
             .spacing(4);
 
-            let save_button = button(text("Save & add profile"))
+            let save_button = button(text(t!("server-save-add-profile")))
                 .style(builtins::button::primary)
                 .padding([8, 18])
                 .on_press(Message::SubmitServerForm);
-            let cancel_button = button(text("Cancel"))
+            let cancel_button = button(text(t!("action-cancel")))
                 .style(builtins::button::secondary)
                 .padding([8, 18])
                 .on_press(Message::CancelServerForm);
 
             Column::new()
-                .push(text("Add server").size(Pixels(22.0)))
+                .push(text(t!("server-add")).size(Pixels(22.0)))
                 .push(name_field)
                 .push(host_field)
                 .push(port_field)
+                .push(encoding_field(state))
                 .push(server_error(state))
                 .push(Row::new().push(save_button).push(cancel_button).spacing(10))
                 .spacing(15)
@@ -233,13 +232,13 @@ pub(super) fn view_server_form<'a>(
         ServerCrudAction::Edit(name) => {
             // --- Edit Form — name is the key and stays read-only ---
             let name_field = column![
-                text("Name").size(13).style(builtins::text::muted),
+                text(t!("server-name")).size(13).style(builtins::text::muted),
                 text(name).size(Pixels(16.0)),
             ]
             .spacing(4);
 
             let host_field = column![
-                text("Host").size(13).style(builtins::text::muted),
+                text(t!("server-host")).size(13).style(builtins::text::muted),
                 TextInput::new("mud.example.com", &state.server_form_data.host)
                     .id(server_host_input_id())
                     .on_input(|val| Message::UpdateServerFormField(ServerFormField::Host, val))
@@ -248,33 +247,34 @@ pub(super) fn view_server_form<'a>(
             .spacing(4);
 
             let port_field = column![
-                text("Port").size(13).style(builtins::text::muted),
+                text(t!("server-port")).size(13).style(builtins::text::muted),
                 TextInput::new("4000", &state.server_form_data.port)
                     .id(server_port_input_id())
                     .width(Length::Fixed(120.0))
                     .on_input(|val| Message::UpdateServerFormField(ServerFormField::Port, val))
                     .on_submit(Message::SubmitServerForm),
-                text(PORT_HELP).size(12).style(builtins::text::muted),
+                text(t!("server-port-help")).size(12).style(builtins::text::muted),
             ]
             .spacing(4);
 
-            let save_button = button(text("Save"))
+            let save_button = button(text(t!("action-save")))
                 .style(builtins::button::primary)
                 .padding([8, 18])
                 .on_press(Message::SubmitServerForm);
-            let cancel_button = button(text("Cancel"))
+            let cancel_button = button(text(t!("action-cancel")))
                 .style(builtins::button::secondary)
                 .padding([8, 18])
                 .on_press(Message::CancelServerForm);
-            let delete_button = button(text("Delete server"))
+            let delete_button = button(text(t!("server-delete")))
                 .style(builtins::button::link)
                 .on_press(Message::RequestConfirmDeleteServer(name.clone()));
 
             Column::new()
-                .push(text("Edit server").size(Pixels(22.0)))
+                .push(text(t!("server-edit")).size(Pixels(22.0)))
                 .push(name_field)
                 .push(host_field)
                 .push(port_field)
+                .push(encoding_field(state))
                 .push(server_error(state))
                 .push(Row::new().push(save_button).push(cancel_button).spacing(10))
                 .push(vertical_space().height(Pixels(10.0)))
@@ -284,22 +284,20 @@ pub(super) fn view_server_form<'a>(
         }
         ServerCrudAction::ConfirmDelete(name) => {
             // --- Delete Confirmation ---
-            let confirmation_text = text(format!(
-                "Are you sure you want to delete the server '{name}'? This cannot be undone."
-            ))
+            let confirmation_text = text(t!("server-confirm-delete", "name" => name))
             .size(Pixels(16.0));
 
-            let confirm_delete_button = button(text("Yes, delete this server"))
+            let confirm_delete_button = button(text(t!("server-confirm-delete-action")))
                 .style(builtins::button::secondary)
                 .padding([8, 18])
                 .on_press(Message::ConfirmDeleteServer(name.clone()));
-            let cancel_delete_button = button(text("Cancel"))
+            let cancel_delete_button = button(text(t!("action-cancel")))
                 .style(builtins::button::secondary)
                 .padding([8, 18])
                 .on_press(Message::CancelServerForm);
 
             Column::new()
-                .push(text("Delete server").size(Pixels(22.0)))
+                .push(text(t!("server-delete")).size(Pixels(22.0)))
                 .push(confirmation_text)
                 .push(server_error(state))
                 .push(
@@ -312,6 +310,25 @@ pub(super) fn view_server_form<'a>(
                 .into()
         }
     }
+}
+
+fn encoding_field(state: &State) -> Element<'_, Message> {
+    column![
+        text(t!("encoding-label"))
+            .size(13)
+            .style(builtins::text::muted),
+        pick_list(
+            ServerEncoding::ALL.to_vec(),
+            Some(state.server_form_data.encoding),
+            Message::UpdateServerEncoding,
+        )
+        .width(Length::Fixed(360.0)),
+        text(t!("encoding-help"))
+            .size(12)
+            .style(builtins::text::muted),
+    ]
+    .spacing(4)
+    .into()
 }
 
 /// Renders the current server-form error (if any) as danger text, or an empty

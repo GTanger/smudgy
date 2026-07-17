@@ -363,6 +363,17 @@ fn flag_value(name: &str, arg: &str, rest: &mut impl Iterator<Item = String>) ->
 pub fn run() -> anyhow::Result<()> {
     apply_launch_overrides();
     smudgy_core::init();
+    // Resolve the persisted/system locale before configuring the daemon's
+    // default UI font. `init` reloads the same settings for the live model.
+    let startup_settings = smudgy_core::models::settings::load_settings();
+    smudgy_i18n::activate(startup_settings.locale);
+    let default_ui_font = if smudgy_i18n::current_locale()
+        == smudgy_i18n::Locale::TraditionalChinese
+    {
+        assets::fonts::NOTO_SANS_TC
+    } else {
+        assets::fonts::GEIST_VF
+    };
 
     iced::daemon(init, update, view)
         .theme(|smudgy: &Smudgy, window_id| {
@@ -377,6 +388,8 @@ pub fn run() -> anyhow::Result<()> {
         .subscription(subscription)
         .font(assets::fonts::GEIST_VF_BYTES)
         .font(assets::fonts::GEIST_MONO_VF_BYTES)
+        .font(assets::fonts::NOTO_SANS_TC_BYTES)
+        .font(assets::fonts::NOTO_SANS_MONO_CJK_TC_BYTES)
         .font(assets::fonts::BOOTSTRAP_ICONS_BYTES)
         .font(assets::fonts::MONASPACE_ARGON_BYTES)
         .font(assets::fonts::MONASPACE_KRYPTON_BYTES)
@@ -393,7 +406,7 @@ pub fn run() -> anyhow::Result<()> {
         .font(assets::fonts::FIRA_MONO_BOLD_BYTES)
         .font(assets::fonts::LILEX_BYTES)
         .font(assets::fonts::VT323_BYTES)
-        .default_font(assets::fonts::GEIST_VF)
+        .default_font(default_ui_font)
         .title(|smudgy: &Smudgy, window_id: window::Id| {
             if let Some(window) = smudgy.automations_windows.get(&window_id) {
                 format!("smudgy automations - {}", window.server_name())

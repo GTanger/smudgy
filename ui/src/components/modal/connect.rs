@@ -1,6 +1,7 @@
 use iced::widget::{Id, Row, button, column, container, operation, text, text_editor};
 use iced::{Length, Pixels, Task};
 use log::warn;
+use smudgy_i18n::t;
 
 use crate::theme::Element;
 use crate::theme::builtins;
@@ -9,7 +10,10 @@ use crate::theme::builtins;
 use smudgy_core::models::profile::{
     clear_profile_password, contains_password_token, has_profile_password, set_profile_password,
 };
-use smudgy_core::models::{profile::Profile, server::Server};
+use smudgy_core::models::{
+    profile::Profile,
+    server::{Server, ServerEncoding},
+};
 use std::collections::HashMap;
 
 mod profile;
@@ -87,6 +91,7 @@ pub enum Message {
     ConfirmDeleteServer(ServerName),        // User confirms deletion
     // Server Form Interaction
     UpdateServerFormField(ServerFormField, String),
+    UpdateServerEncoding(ServerEncoding),
     SubmitServerForm,
     CancelServerForm,
     // Server CRUD Async Results
@@ -135,6 +140,7 @@ pub struct ServerConfigFormData {
     pub name: String,
     pub host: String,
     pub port: String,
+    pub encoding: ServerEncoding,
 }
 
 /// Temporary storage for profile form input. `description` maps to the persisted
@@ -330,7 +336,11 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
             if state.is_loading_profiles.as_ref() == Some(&server_name) {
                 state.is_loading_profiles = None;
             }
-            let err_msg = format!("Error loading profiles for '{server_name}': {e}");
+            let err_msg = t!(
+                "profiles-error-load",
+                "server" => &server_name,
+                "error" => e
+            );
             warn!("{err_msg}");
             state.profile_crud_error = Some(err_msg); // Display error to user
         }
@@ -386,6 +396,7 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
                     name: server_to_edit.name.clone(), // Pre-fill name (though not directly editable usually)
                     host: server_to_edit.config.host.clone(),
                     port: server_to_edit.config.port.to_string(),
+                    encoding: server_to_edit.config.encoding,
                 };
                 state.server_crud_error = None;
                 state.selected_server = Some(server_name); // Ensure server remains selected
@@ -418,6 +429,15 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
                     ServerFormField::Port => state.server_form_data.port = value,
                 }
                 state.server_crud_error = None; // Clear error when user types
+            }
+        }
+        Message::UpdateServerEncoding(encoding) => {
+            if matches!(
+                state.server_action,
+                Some(ServerCrudAction::Create) | Some(ServerCrudAction::Edit(_))
+            ) {
+                state.server_form_data.encoding = encoding;
+                state.server_crud_error = None;
             }
         }
         Message::SubmitServerForm => {
@@ -468,7 +488,7 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
                     task = Task::batch([load_task, operation::focus(profile_name_input_id())]);
                 }
                 Err(e) => {
-                    state.server_crud_error = Some(format!("Failed to create server: {e}"));
+                    state.server_crud_error = Some(t!("server-error-create", "error" => e));
                 }
             }
         }
@@ -495,7 +515,7 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
                     state.selected_server = Some(updated_server.name);
                 }
                 Err(e) => {
-                    state.server_crud_error = Some(format!("Failed to update server: {e}"));
+                    state.server_crud_error = Some(t!("server-error-update", "error" => e));
                 }
             }
         }
@@ -532,7 +552,7 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
                 }
                 Err(e) => {
                     // Show error, maybe associate with the server if possible?
-                    state.server_crud_error = Some(format!("Failed to delete server: {e}"));
+                    state.server_crud_error = Some(t!("server-error-delete", "error" => &e));
                     warn!("Failed to delete server: {e}");
                     // If deletion failed while confirming, reset state back to None
                     // (or maybe back to Edit if that was the origin? Simpler to just reset)
@@ -617,8 +637,7 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
                 );
             } else {
                 warn!("Error: Cannot delete profile, no server selected during confirmation.");
-                state.profile_crud_error =
-                    Some("Error: No server selected for deletion confirmation.".to_string());
+                state.profile_crud_error = Some(t!("profile-error-delete-no-server"));
                 state.profile_action = None;
             }
         }
@@ -661,7 +680,8 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
                 // Clear the stored secret now — this is an explicit user action.
                 let cleared = clear_profile_password(server_name, profile_name);
                 if let Err(e) = cleared {
-                    state.profile_crud_error = Some(format!("Failed to clear stored password: {e}"));
+                    state.profile_crud_error =
+                        Some(t!("profile-error-password-clear", "error" => e));
                 }
             }
             state.profile_form_password = String::new();
@@ -705,7 +725,7 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
                     // Keep the current server selected
                 }
                 Err(e) => {
-                    state.profile_crud_error = Some(format!("Failed to create profile: {e}"));
+                    state.profile_crud_error = Some(t!("profile-error-create", "error" => e));
                 }
             }
         }
@@ -753,7 +773,7 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
                     // Keep the current server selected
                 }
                 Err(e) => {
-                    state.profile_crud_error = Some(format!("Failed to update profile: {e}"));
+                    state.profile_crud_error = Some(t!("profile-error-update", "error" => e));
                 }
             }
         }
@@ -776,7 +796,7 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
                 }
                 Err(e) => {
                     // Show error, maybe associate with the server if possible?
-                    state.profile_crud_error = Some(format!("Failed to delete profile: {e}"));
+                    state.profile_crud_error = Some(t!("profile-error-delete", "error" => &e));
                     warn!("Failed to delete profile: {e}");
                     // Keep the confirmation state active so the user sees the error
                     // Or maybe reset to Edit state? Let's reset to Edit.
@@ -798,15 +818,15 @@ pub fn update(state: &mut State, message: Message) -> (Task<Message>, Option<Eve
 /// non-empty server list auto-selects the first server).
 fn view_placeholder(state: &State) -> Element<'_, Message> {
     if state.is_loading_servers {
-        return column![text("Loading servers…").style(builtins::text::muted)].into();
+        return column![text(t!("servers-loading")).style(builtins::text::muted)].into();
     }
 
     if state.servers.is_empty() {
         // First-run welcome: a guided start, not an instruction fragment.
         column![
-            text("Add a server to get started").size(Pixels(22.0)),
-            text("Add a server, then a profile to log in with.").style(builtins::text::muted),
-            button(text("Add your first server"))
+            text(t!("servers-get-started")).size(Pixels(22.0)),
+            text(t!("servers-get-started-help")).style(builtins::text::muted),
+            button(text(t!("servers-add-first")))
                 .style(builtins::button::primary)
                 .padding([8, 18])
                 .on_press(Message::RequestCreateServer),
@@ -814,7 +834,7 @@ fn view_placeholder(state: &State) -> Element<'_, Message> {
         .spacing(15)
         .into()
     } else {
-        column![text("Select a server from the list.").style(builtins::text::muted)].into()
+        column![text(t!("servers-select")).style(builtins::text::muted)].into()
     }
 }
 

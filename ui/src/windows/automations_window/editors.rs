@@ -60,7 +60,7 @@ impl FolderChoice {
 impl std::fmt::Display for FolderChoice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FolderChoice::TopLevel => f.write_str("(top level)"),
+            FolderChoice::TopLevel => f.write_str(&smudgy_i18n::t!("editor-top-level")),
             FolderChoice::Folder(path) => f.write_str(path),
         }
     }
@@ -249,7 +249,11 @@ impl AutomationsWindow {
                 }
                 Err(e) => {
                     self.pane =
-                        Pane::Error(Arc::new(vec![format!("Failed to read '{subpath}': {e}")]));
+                        Pane::Error(Arc::new(vec![smudgy_i18n::t!(
+                            "editor-failed-read",
+                            "path" => subpath,
+                            "error" => e
+                        )]));
                 }
             }
         }
@@ -334,7 +338,7 @@ impl AutomationsWindow {
         state.enabled = next;
         packages::set_folder_enabled(&mut self.packages, &path, next);
         if let Err(e) = packages::save_packages(&self.server_name, &self.packages) {
-            return warn_none(format!("Failed to save folders: {e}"));
+            return warn_none(smudgy_i18n::t!("editor-failed-save-folders", "error" => e));
         }
         Update::with_event(Event::ScriptsChanged {
             server_name: self.server_name.clone(),
@@ -348,7 +352,7 @@ impl AutomationsWindow {
         state.error = None;
         let name = state.name.trim().to_string();
         if name.is_empty() {
-            state.error = Some("Name cannot be empty".to_string());
+            state.error = Some(smudgy_i18n::t!("editor-name-empty"));
             return Update::none();
         }
         if let Err(message) = naming::validate_name(&name) {
@@ -372,7 +376,7 @@ impl AutomationsWindow {
         };
         if conflicts {
             if let Pane::Editor(state) = &mut self.pane {
-                state.error = Some("Name already in use".to_string());
+                state.error = Some(smudgy_i18n::t!("editor-name-in-use"));
             }
             return Update::none();
         }
@@ -447,7 +451,7 @@ impl AutomationsWindow {
         }
         if let Err(e) = self.serialize_scripts() {
             if let Pane::Editor(state) = &mut self.pane {
-                state.error = Some(format!("Failed to save: {e}"));
+                state.error = Some(smudgy_i18n::t!("editor-failed-save", "error" => e));
             }
             return Update::none();
         }
@@ -462,7 +466,7 @@ impl AutomationsWindow {
         });
         self.dirty = false;
         self.pending_nav = None;
-        let toast = self.show_toast(format!("Saved {name}."));
+        let toast = self.show_toast(smudgy_i18n::t!("editor-saved", "name" => name));
         Update::new(
             toast,
             Some(Event::ScriptsChanged {
@@ -508,13 +512,16 @@ impl AutomationsWindow {
         };
         self.remove_script_by_name(&original);
         if let Err(e) = self.serialize_scripts() {
-            self.pane = Pane::Error(Arc::new(vec![format!("Failed to save after delete: {e}")]));
+            self.pane = Pane::Error(Arc::new(vec![smudgy_i18n::t!(
+                "editor-failed-save-delete",
+                "error" => e
+            )]));
             return Update::none();
         }
         self.dirty = false;
         self.selection = Selection::Dashboard;
         self.pane = Pane::Dashboard;
-        let toast = self.show_toast(format!("Deleted {original}."));
+        let toast = self.show_toast(smudgy_i18n::t!("editor-deleted", "name" => original));
         Update::new(
             toast,
             Some(Event::ScriptsChanged {
@@ -546,7 +553,10 @@ impl AutomationsWindow {
                 packages::insert_folder(&mut self.packages, &path);
                 if let Err(e) = packages::save_packages(&self.server_name, &self.packages) {
                     if let Pane::Folder(state) = &mut self.pane {
-                        state.error = Some(format!("Failed to save folders: {e}"));
+                        state.error = Some(smudgy_i18n::t!(
+                            "editor-failed-save-folders",
+                            "error" => e
+                        ));
                     }
                     return Update::none();
                 }
@@ -559,7 +569,7 @@ impl AutomationsWindow {
                     enabled,
                     error: None,
                 });
-                Update::with_task(self.show_toast("Folder created."))
+                Update::with_task(self.show_toast(smudgy_i18n::t!("editor-folder-created")))
             }
             EditorMode::Edit => {
                 let Some(old_path) = original_path else {
@@ -571,10 +581,16 @@ impl AutomationsWindow {
                 packages::rename_folder(&mut self.packages, &old_path, &path);
                 self.rename_script_packages(&old_path, &path);
                 if let Err(e) = packages::save_packages(&self.server_name, &self.packages) {
-                    return warn_none(format!("Failed to save folders: {e}"));
+                    return warn_none(smudgy_i18n::t!(
+                        "editor-failed-save-folders",
+                        "error" => e
+                    ));
                 }
                 if let Err(e) = self.serialize_scripts() {
-                    return warn_none(format!("Failed to save scripts: {e}"));
+                    return warn_none(smudgy_i18n::t!(
+                        "editor-failed-save-scripts",
+                        "error" => e
+                    ));
                 }
                 self.selection = Selection::Folder(path.clone());
                 self.pane = Pane::Folder(FolderState {
@@ -614,10 +630,10 @@ impl AutomationsWindow {
         }
         self.confirm_folder_delete = false;
         if let Err(e) = packages::save_packages(&self.server_name, &self.packages) {
-            return warn_none(format!("Failed to save folders: {e}"));
+            return warn_none(smudgy_i18n::t!("editor-failed-save-folders", "error" => e));
         }
         if let Err(e) = self.serialize_scripts() {
-            return warn_none(format!("Failed to save scripts: {e}"));
+            return warn_none(smudgy_i18n::t!("editor-failed-save-scripts", "error" => e));
         }
         self.selection = Selection::Dashboard;
         self.pane = Pane::Dashboard;
@@ -639,11 +655,11 @@ impl AutomationsWindow {
             _ => return Update::none(),
         };
         if let Err(e) = std::fs::write(&path, self.editor_content.text()) {
-            return warn_none(format!("Failed to save module: {e}"));
+            return warn_none(smudgy_i18n::t!("editor-failed-save-module", "error" => e));
         }
         self.dirty = false;
         self.pending_nav = None;
-        let toast = self.show_toast("Saved module.");
+        let toast = self.show_toast(smudgy_i18n::t!("editor-module-saved"));
         Update::new(
             toast,
             Some(Event::ScriptsChanged {
@@ -667,7 +683,10 @@ impl AutomationsWindow {
             Ok(server) => server.path.join("modules"),
             Err(e) => {
                 if let Pane::Module(state) = &mut self.pane {
-                    state.error = Some(format!("Failed to resolve modules dir: {e}"));
+                    state.error = Some(smudgy_i18n::t!(
+                        "editor-failed-modules-dir",
+                        "error" => e
+                    ));
                 }
                 return Update::none();
             }
@@ -677,20 +696,20 @@ impl AutomationsWindow {
             && let Err(e) = std::fs::create_dir_all(parent)
         {
             if let Pane::Module(state) = &mut self.pane {
-                state.error = Some(format!("Failed to create module: {e}"));
+                state.error = Some(smudgy_i18n::t!("editor-failed-create-module", "error" => e));
             }
             return Update::none();
         }
         if let Err(e) = std::fs::write(&target, self.editor_content.text()) {
             if let Pane::Module(state) = &mut self.pane {
-                state.error = Some(format!("Failed to create module: {e}"));
+                state.error = Some(smudgy_i18n::t!("editor-failed-create-module", "error" => e));
             }
             return Update::none();
         }
         self.dirty = false;
         self.selection = Selection::Dashboard;
         self.pane = Pane::Dashboard;
-        let toast = self.show_toast(format!("Created module {name}."));
+        let toast = self.show_toast(smudgy_i18n::t!("editor-module-created", "name" => name));
         Update::new(
             Task_batch_module_reload(toast),
             Some(Event::ScriptsChanged {
@@ -902,17 +921,17 @@ impl AutomationsWindow {
             });
         if can_delete {
             bar = bar.push(
-                button(text("Delete").size(13.0))
+                button(text(smudgy_i18n::t!("editor-delete")).size(13.0))
                     .style(button_style::secondary)
                     .on_press(Message::Delete),
             );
         }
         if self.dirty {
             bar = bar.push(text("\u{25CF}").size(9.0).style(common::accent));
-            bar = bar.push(text("Unsaved changes").size(13.0).style(common::muted));
+            bar = bar.push(text(smudgy_i18n::t!("editor-unsaved")).size(13.0).style(common::muted));
             bar = bar.push(iced::widget::space::horizontal());
             bar = bar.push(
-                button(text("Discard").size(13.0))
+                button(text(smudgy_i18n::t!("editor-discard")).size(13.0))
                     .style(button_style::secondary)
                     .on_press(Message::Discard),
             );
@@ -928,7 +947,7 @@ impl AutomationsWindow {
     fn behavior_radios<'a>(&self, current: ScriptLang) -> Elem<'a> {
         row![
             radio(
-                "Send as text",
+                smudgy_i18n::t!("editor-send-text"),
                 ScriptLang::Plaintext,
                 Some(current),
                 Message::SetBehavior
@@ -994,7 +1013,7 @@ impl AutomationsWindow {
             .on_action(Message::ScriptEditorAction)
             .height(Length::Fixed(220.0));
         column![
-            common::section_label("Script"),
+            common::section_label(smudgy_i18n::ts!("editor-script")),
             container(editor).style(common::code_surface_style),
         ]
         .spacing(6.0)
@@ -1048,7 +1067,7 @@ impl AutomationsWindow {
     /// picker, with the dropdown sized to match the switch above it.
     fn folder_aside<'a>(&self, folder: Option<&str>) -> Elem<'a> {
         row![
-            text("Folder").size(13.0).style(common::muted),
+            text(smudgy_i18n::t!("editor-folder")).size(13.0).style(common::muted),
             self.folder_picker(folder),
         ]
         .spacing(8.0)
@@ -1065,14 +1084,14 @@ impl AutomationsWindow {
         let badge_label = if alias.language == ScriptLang::JS {
             "JavaScript"
         } else {
-            "Text"
+            smudgy_i18n::ts!("editor-text")
         };
         let title = if create {
-            "New alias"
+            smudgy_i18n::ts!("editor-new-alias")
         } else {
             state.name.as_str()
         };
-        let subtitle = subtitle_for(create, "Alias", alias.package.as_deref());
+        let subtitle = subtitle_for(create, smudgy_i18n::ts!("automation-alias"), alias.package.as_deref());
         let status = Self::editor_status(create, alias.enabled, false);
 
         let mut body = column![self.scene_header_with_aside(
@@ -1089,26 +1108,30 @@ impl AutomationsWindow {
         }
 
         body = body.push(field_row(
-            "Name",
-            text_input("e.g. kill", &state.name)
+            smudgy_i18n::ts!("editor-name"),
+            text_input(smudgy_i18n::ts!("editor-example-alias-name"), &state.name)
                 .on_input(Message::SetName)
                 .size(14.0)
                 .into(),
         ));
         body = body.push(field_row(
-            "Pattern",
-            text_input("e.g. ^k (.+)$", &alias.pattern)
+            smudgy_i18n::ts!("editor-pattern"),
+            text_input(smudgy_i18n::ts!("editor-example-alias-pattern"), &alias.pattern)
                 .on_input(Message::SetAliasPattern)
                 .size(14.0)
                 .into(),
         ));
-        body = body.push(self.tester_box("Test against a command", &alias.pattern, true));
-        body = body.push(field_row("Behavior", self.behavior_radios(alias.language)));
+        body = body.push(self.tester_box(smudgy_i18n::ts!("editor-test-command"), &alias.pattern, true));
+        body = body.push(field_row(smudgy_i18n::ts!("editor-behavior"), self.behavior_radios(alias.language)));
         body = body.push(self.code_editor(alias.language));
         if let Some(bar) = self.save_bar(
             create,
             !create,
-            if create { "Create alias" } else { "Save" },
+            if create {
+                smudgy_i18n::ts!("editor-create-alias")
+            } else {
+                smudgy_i18n::ts!("action-save")
+            },
         ) {
             body = body.push(bar);
         }
@@ -1124,14 +1147,14 @@ impl AutomationsWindow {
         let badge_label = if hotkey.language == ScriptLang::JS {
             "JavaScript"
         } else {
-            "Text"
+            smudgy_i18n::ts!("editor-text")
         };
         let title = if create {
-            "New hotkey"
+            smudgy_i18n::ts!("editor-new-hotkey")
         } else {
             state.name.as_str()
         };
-        let subtitle = subtitle_for(create, "Hotkey", hotkey.package.as_deref());
+        let subtitle = subtitle_for(create, smudgy_i18n::ts!("automation-hotkey"), hotkey.package.as_deref());
         let status = Self::editor_status(create, hotkey.enabled, false);
 
         let mut body = column![self.scene_header_with_aside(
@@ -1146,26 +1169,30 @@ impl AutomationsWindow {
             body = body.push(error_bar(error));
         }
         body = body.push(field_row(
-            "Name",
-            text_input("e.g. north", &state.name)
+            smudgy_i18n::ts!("editor-name"),
+            text_input(smudgy_i18n::ts!("editor-example-hotkey-name"), &state.name)
                 .on_input(Message::SetName)
                 .size(14.0)
                 .into(),
         ));
         body = body.push(field_row(
-            "Shortcut",
+            smudgy_i18n::ts!("editor-shortcut"),
             Element::new(
                 HotkeyInput::new(&self.hotkey_state, true)
                     .height(Length::Fixed(34.0))
                     .on_action(Message::MarkHotkeyState),
             ),
         ));
-        body = body.push(field_row("Behavior", self.behavior_radios(hotkey.language)));
+        body = body.push(field_row(smudgy_i18n::ts!("editor-behavior"), self.behavior_radios(hotkey.language)));
         body = body.push(self.code_editor(hotkey.language));
         if let Some(bar) = self.save_bar(
             create,
             !create,
-            if create { "Create hotkey" } else { "Save" },
+            if create {
+                smudgy_i18n::ts!("editor-create-hotkey")
+            } else {
+                smudgy_i18n::ts!("action-save")
+            },
         ) {
             body = body.push(bar);
         }
@@ -1181,11 +1208,11 @@ impl AutomationsWindow {
     ) -> Elem<'a> {
         let create = state.mode == EditorMode::Create;
         let title = if create {
-            "New trigger"
+            smudgy_i18n::ts!("editor-new-trigger")
         } else {
             state.name.as_str()
         };
-        let subtitle = subtitle_for(create, "Trigger", trigger_package(state));
+        let subtitle = subtitle_for(create, smudgy_i18n::ts!("automation-trigger"), trigger_package(state));
         let any_invalid = rows
             .iter()
             .any(|(_, p)| !p.is_empty() && regex::Regex::new(p).is_err());
@@ -1204,13 +1231,13 @@ impl AutomationsWindow {
             body = body.push(error_bar(error));
         } else if any_invalid {
             body = body.push(error_bar(
-                "One or more patterns won't compile — check the highlighted rows.",
+                smudgy_i18n::ts!("editor-patterns-invalid"),
             ));
         }
 
         body = body.push(field_row(
-            "Name",
-            text_input("e.g. low-health-alert", &state.name)
+            smudgy_i18n::ts!("editor-name"),
+            text_input(smudgy_i18n::ts!("editor-example-trigger-name"), &state.name)
                 .on_input(Message::SetName)
                 .size(14.0)
                 .into(),
@@ -1266,7 +1293,7 @@ impl AutomationsWindow {
                     text(bootstrap_icons::PLUS_LG)
                         .font(fonts::BOOTSTRAP_ICONS)
                         .size(12.0),
-                    text("Add pattern").size(13.0),
+                    text(smudgy_i18n::t!("editor-add-pattern")).size(13.0),
                 ]
                 .spacing(6.0)
                 .align_y(Vertical::Center),
@@ -1274,15 +1301,19 @@ impl AutomationsWindow {
             .style(button_style::secondary)
             .on_press(Message::AddPattern),
         );
-        body = body.push(field_row("Patterns", patterns.into()));
+        body = body.push(field_row(smudgy_i18n::ts!("editor-patterns"), patterns.into()));
 
-        body = body.push(self.tester_box("Test against a line", "", false));
-        body = body.push(field_row("Behavior", self.behavior_radios(language)));
+        body = body.push(self.tester_box(smudgy_i18n::ts!("editor-test-line"), "", false));
+        body = body.push(field_row(smudgy_i18n::ts!("editor-behavior"), self.behavior_radios(language)));
         body = body.push(self.code_editor(language));
         if let Some(bar) = self.save_bar(
             create,
             !create,
-            if create { "Create trigger" } else { "Save" },
+            if create {
+                smudgy_i18n::ts!("editor-create-trigger")
+            } else {
+                smudgy_i18n::ts!("action-save")
+            },
         ) {
             body = body.push(bar);
         }
@@ -1330,7 +1361,12 @@ impl AutomationsWindow {
                 node: EditNode::Trigger { rows, .. },
                 ..
             }) => rows,
-            _ => return ("No match".to_string(), NodeStatus::Disabled),
+            _ => {
+                return (
+                    smudgy_i18n::t!("editor-no-match"),
+                    NodeStatus::Disabled,
+                );
+            }
         };
         let line = &self.test_input;
         let mut any = false;
@@ -1341,23 +1377,37 @@ impl AutomationsWindow {
             any = true;
             let re = match regex::Regex::new(pattern) {
                 Ok(re) => re,
-                Err(_) => return ("Invalid pattern".to_string(), NodeStatus::Error),
+                Err(_) => {
+                    return (
+                        smudgy_i18n::t!("editor-invalid-pattern"),
+                        NodeStatus::Error,
+                    );
+                }
             };
             let matches = re.is_match(line);
             match kind {
                 PatternKind::Match | PatternKind::Raw if !matches => {
-                    return ("No match".to_string(), NodeStatus::Disabled);
+                    return (
+                        smudgy_i18n::t!("editor-no-match"),
+                        NodeStatus::Disabled,
+                    );
                 }
                 PatternKind::Anti if matches => {
-                    return ("No match".to_string(), NodeStatus::Disabled);
+                    return (
+                        smudgy_i18n::t!("editor-no-match"),
+                        NodeStatus::Disabled,
+                    );
                 }
                 _ => {}
             }
         }
         if !any || line.is_empty() {
-            return ("Enter a line".to_string(), NodeStatus::Disabled);
+            return (
+                smudgy_i18n::t!("editor-enter-line"),
+                NodeStatus::Disabled,
+            );
         }
-        ("Would fire".to_string(), NodeStatus::Ok)
+        (smudgy_i18n::t!("editor-would-fire"), NodeStatus::Ok)
     }
 
     // ---- folder + module views --------------------------------------------
@@ -1370,19 +1420,19 @@ impl AutomationsWindow {
             0
         };
         let title = if create {
-            "New folder".to_string()
+            smudgy_i18n::t!("editor-new-folder")
         } else {
             state
                 .original_path
                 .as_deref()
                 .and_then(|p| p.rsplit('/').next())
-                .unwrap_or("Folder")
+                .unwrap_or(smudgy_i18n::ts!("editor-folder"))
                 .to_string()
         };
         let subtitle = if create {
-            "Folder".to_string()
+            smudgy_i18n::t!("editor-folder")
         } else {
-            format!("Folder · {count} items")
+            smudgy_i18n::t!("editor-folder-summary", "count" => count)
         };
         let actions: Option<Elem<'a>> = if create {
             None
@@ -1406,16 +1456,16 @@ impl AutomationsWindow {
             body = body.push(error_bar(error));
         }
         body = body.push(field_row(
-            "Path",
-            text_input("e.g. combat/healing", &state.path)
+            smudgy_i18n::ts!("editor-path"),
+            text_input(smudgy_i18n::ts!("editor-example-folder-path"), &state.path)
                 .on_input(Message::SetFolderPath)
                 .size(14.0)
                 .into(),
         ));
         let hint = if !create && !state.enabled {
-            "Disabled — scripts in this folder won't run. Use \"/\" to nest folders."
+            smudgy_i18n::ts!("editor-folder-disabled-help")
         } else {
-            "Use \"/\" to nest folders. Move a script into a folder from its Folder field in the editor (or the command palette)."
+            smudgy_i18n::ts!("editor-folder-help")
         };
         body = body.push(text(hint).size(12.0).style(common::muted));
 
@@ -1425,7 +1475,7 @@ impl AutomationsWindow {
             if !rows.is_empty() {
                 let mut contents = Column::new()
                     .spacing(4.0)
-                    .push(common::section_label("Contents"));
+                    .push(common::section_label(smudgy_i18n::ts!("editor-contents")));
                 for (status, kind_icon, name, msg) in rows {
                     contents = contents.push(
                         button(
@@ -1451,17 +1501,17 @@ impl AutomationsWindow {
             body = body.push(
                 container(
                     row![
-                        text("Delete this folder?")
+                        text(smudgy_i18n::t!("editor-delete-folder-question"))
                             .size(13.0)
                             .align_y(Vertical::Center),
                         iced::widget::space::horizontal(),
-                        button(text("Move scripts to parent").size(13.0))
+                        button(text(smudgy_i18n::t!("editor-move-scripts-parent")).size(13.0))
                             .style(button_style::secondary)
                             .on_press(Message::ConfirmDeleteFolder(false)),
-                        button(text("Delete scripts too").size(13.0))
+                        button(text(smudgy_i18n::t!("editor-delete-scripts-too")).size(13.0))
                             .style(button_style::secondary)
                             .on_press(Message::ConfirmDeleteFolder(true)),
-                        button(text("Cancel").size(13.0))
+                        button(text(smudgy_i18n::t!("action-cancel")).size(13.0))
                             .style(button_style::secondary)
                             .on_press(Message::CancelDeleteFolder),
                     ]
@@ -1483,19 +1533,26 @@ impl AutomationsWindow {
                 });
             if !create {
                 bar = bar.push(
-                    button(text("Delete").size(13.0))
+                    button(text(smudgy_i18n::t!("action-delete")).size(13.0))
                         .style(button_style::secondary)
                         .on_press(Message::RequestDeleteFolder),
                 );
             }
             bar = bar.push(iced::widget::space::horizontal());
             bar = bar.push(
-                button(text("Discard").size(13.0))
+                button(text(smudgy_i18n::t!("editor-discard")).size(13.0))
                     .style(button_style::secondary)
                     .on_press(Message::Discard),
             );
             bar = bar.push(
-                button(text(if create { "Create folder" } else { "Save" }).size(13.0))
+                button(
+                    text(if create {
+                        smudgy_i18n::t!("editor-create-folder")
+                    } else {
+                        smudgy_i18n::t!("action-save")
+                    })
+                    .size(13.0),
+                )
                     .style(button_style::primary)
                     .on_press(Message::SaveFolder),
             );
@@ -1554,12 +1611,11 @@ impl AutomationsWindow {
     pub(super) fn view_module<'a>(&'a self, state: &'a ModuleState) -> Elem<'a> {
         let create = state.mode == ModuleMode::Create;
         let title = if create {
-            "New module".to_string()
+            smudgy_i18n::t!("editor-new-module")
         } else {
             state.subpath.clone()
         };
-        let subtitle =
-            "Local modules are loaded similar to packages, but run with full privileges and no sandbox".to_string();
+        let subtitle = smudgy_i18n::t!("editor-module-help");
         let mut body =
             column![self.scene_header(Some(NodeStatus::Ok), &title, Some(subtitle), None)]
                 .spacing(16.0);
@@ -1568,8 +1624,8 @@ impl AutomationsWindow {
         }
         if create {
             body = body.push(field_row(
-                "Name",
-                text_input("e.g. lib/util.ts", &state.name)
+                smudgy_i18n::ts!("editor-name"),
+                text_input(smudgy_i18n::ts!("editor-example-module-path"), &state.name)
                     .on_input(Message::SetNewModuleName)
                     .size(14.0)
                     .into(),
@@ -1605,7 +1661,7 @@ impl AutomationsWindow {
             .height(Length::Fixed(360.0));
         body = body.push(
             column![
-                common::section_label("Source"),
+                common::section_label(smudgy_i18n::ts!("editor-source")),
                 container(editor).style(common::code_surface_style),
             ]
             .spacing(6.0),
@@ -1622,19 +1678,19 @@ impl AutomationsWindow {
             });
         bar = bar.push(iced::widget::space::horizontal());
         bar = bar.push(
-            button(text("Discard").size(13.0))
+            button(text(smudgy_i18n::t!("editor-discard")).size(13.0))
                 .style(button_style::secondary)
                 .on_press(Message::Discard),
         );
         if create {
             bar = bar.push(
-                button(text("Create module").size(13.0))
+                button(text(smudgy_i18n::t!("editor-create-module")).size(13.0))
                     .style(button_style::primary)
                     .on_press(Message::CreateModule),
             );
         } else {
             bar = bar.push(
-                button(text("Save").size(13.0))
+                button(text(smudgy_i18n::t!("action-save")).size(13.0))
                     .style(button_style::primary)
                     .on_press(Message::SaveModule),
             );
@@ -1650,9 +1706,9 @@ fn subtitle_for(create: bool, kind: &str, package: Option<&str>) -> String {
     if create {
         kind.to_string()
     } else if let Some(folder) = package {
-        format!("{kind} · in {folder}")
+        smudgy_i18n::t!("editor-kind-in-folder", "kind" => kind, "folder" => folder)
     } else {
-        format!("{kind} · top level")
+        smudgy_i18n::t!("editor-kind-top-level", "kind" => kind)
     }
 }
 
@@ -1714,17 +1770,23 @@ fn verdict_style(status: NodeStatus) -> fn(&Theme) -> iced::widget::text::Style 
 
 fn alias_verdict(pattern: &str, sample: &str) -> (String, NodeStatus) {
     if pattern.is_empty() {
-        return ("Enter a pattern".to_string(), NodeStatus::Disabled);
+        return (
+            smudgy_i18n::t!("editor-enter-pattern"),
+            NodeStatus::Disabled,
+        );
     }
     match regex::Regex::new(pattern) {
-        Err(_) => ("Invalid pattern".to_string(), NodeStatus::Error),
+        Err(_) => (smudgy_i18n::t!("editor-invalid-pattern"), NodeStatus::Error),
         Ok(re) => {
             if sample.is_empty() {
-                ("Enter a command".to_string(), NodeStatus::Disabled)
+                (
+                    smudgy_i18n::t!("editor-enter-command"),
+                    NodeStatus::Disabled,
+                )
             } else if re.is_match(sample) {
-                ("Matches".to_string(), NodeStatus::Ok)
+                (smudgy_i18n::t!("editor-matches"), NodeStatus::Ok)
             } else {
-                ("No match".to_string(), NodeStatus::Disabled)
+                (smudgy_i18n::t!("editor-no-match"), NodeStatus::Disabled)
             }
         }
     }

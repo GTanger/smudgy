@@ -7,7 +7,6 @@ use iced::widget::{
 };
 use iced::{Length, Pixels, Task};
 use log::warn;
-use validator::Validate;
 use smudgy_i18n::{t, ts};
 
 use crate::theme::Element;
@@ -53,30 +52,42 @@ pub(super) fn handle_submit_server_form(state: &mut State) -> Task<Message> {
         // Clone needed for async task
         Some(ServerCrudAction::Create) => {
             let port = match state.server_form_data.port.trim().parse::<u16>() {
-                Ok(p) => p,
+                Ok(p) if p > 0 => p,
                 Err(_) => {
                     state.server_crud_error = Some(t!("server-error-port"));
                     return Task::none();
                 }
+                Ok(_) => {
+                    state.server_crud_error = Some(t!("server-error-port"));
+                    return Task::none();
+                }
             };
-            let mut config =
-                ServerConfig::new(state.server_form_data.host.trim().to_string(), port);
-            config.encoding = state.server_form_data.encoding;
-            if let Err(e) = config.validate() {
-                state.server_crud_error = Some(t!("server-error-config", "error" => e));
+            let host = state.server_form_data.host.trim();
+            if host.is_empty() {
+                state.server_crud_error = Some(t!("server-error-host-empty"));
                 return Task::none();
             }
+            let mut config = ServerConfig::new(host.to_string(), port);
+            config.encoding = state.server_form_data.encoding;
             let name = state.server_form_data.name.trim().to_string();
             if name.is_empty() {
                 state.server_crud_error = Some(t!("server-error-name-empty"));
+                return Task::none();
+            }
+            if name.contains(|c: char| !c.is_alphanumeric() && c != '_' && c != '-') {
+                state.server_crud_error = Some(t!("server-error-name-format"));
                 return Task::none();
             }
             Task::perform(create_server_async(name, config), Message::ServerCreated)
         }
         Some(ServerCrudAction::Edit(original_name)) => {
             let port = match state.server_form_data.port.trim().parse::<u16>() {
-                Ok(p) => p,
+                Ok(p) if p > 0 => p,
                 Err(_) => {
+                    state.server_crud_error = Some(t!("server-error-port"));
+                    return Task::none();
+                }
+                Ok(_) => {
                     state.server_crud_error = Some(t!("server-error-port"));
                     return Task::none();
                 }
@@ -89,13 +100,14 @@ pub(super) fn handle_submit_server_form(state: &mut State) -> Task<Message> {
                 .iter()
                 .find(|s| s.name == *original_name)
                 .map_or_else(|| ServerConfig::new(String::new(), 0), |s| s.config.clone());
-            config.host = state.server_form_data.host.trim().to_string();
-            config.port = port;
-            config.encoding = state.server_form_data.encoding;
-            if let Err(e) = config.validate() {
-                state.server_crud_error = Some(t!("server-error-config", "error" => e));
+            let host = state.server_form_data.host.trim();
+            if host.is_empty() {
+                state.server_crud_error = Some(t!("server-error-host-empty"));
                 return Task::none();
             }
+            config.host = host.to_string();
+            config.port = port;
+            config.encoding = state.server_form_data.encoding;
             Task::perform(
                 update_server_async(original_name.clone(), config),
                 Message::ServerUpdated,

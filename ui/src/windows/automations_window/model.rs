@@ -191,9 +191,9 @@ impl PatternKind {
 
     pub fn label(self) -> &'static str {
         match self {
-            PatternKind::Match => "Match",
-            PatternKind::Anti => "Anti-match",
-            PatternKind::Raw => "Raw regex",
+            PatternKind::Match => smudgy_i18n::ts!("pattern-kind-match"),
+            PatternKind::Anti => smudgy_i18n::ts!("pattern-kind-anti"),
+            PatternKind::Raw => smudgy_i18n::ts!("pattern-kind-raw"),
         }
     }
 }
@@ -388,11 +388,11 @@ impl AutomationsWindow {
             &mut triggers_map,
         );
         aliases::save_aliases(&self.server_name, &aliases_map)
-            .map_err(|e| format!("Failed to save aliases: {e}"))?;
+            .map_err(|e| smudgy_i18n::t!("automation-save-aliases-failed", "error" => e))?;
         hotkeys::save_hotkeys(&self.server_name, &hotkeys_map)
-            .map_err(|e| format!("Failed to save hotkeys: {e}"))?;
+            .map_err(|e| smudgy_i18n::t!("automation-save-hotkeys-failed", "error" => e))?;
         triggers::save_triggers(&self.server_name, &triggers_map)
-            .map_err(|e| format!("Failed to save triggers: {e}"))?;
+            .map_err(|e| smudgy_i18n::t!("automation-save-triggers-failed", "error" => e))?;
         Ok(())
     }
 
@@ -545,9 +545,9 @@ pub fn upsert_script_folder<'a>(
             match current.get(folder) {
                 Some(Script::Folder(_, _)) => {}
                 Some(_) => {
-                    return Err(format!(
-                        "Failed to load a script which belongs in '{}', which is not a folder",
-                        folder_name.split('/').take(i).collect::<Vec<_>>().join("/")
+                    return Err(smudgy_i18n::t!(
+                        "automation-script-folder-invalid",
+                        "path" => folder_name.split('/').take(i).collect::<Vec<_>>().join("/")
                     ));
                 }
                 None => {
@@ -556,7 +556,7 @@ pub fn upsert_script_folder<'a>(
             }
             current = match current.get_mut(folder) {
                 Some(Script::Folder(_, children)) => children,
-                _ => return Err("Failed to create a script folder".to_string()),
+                _ => return Err(smudgy_i18n::t!("automation-script-folder-create-failed")),
             };
         }
     }

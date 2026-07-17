@@ -10059,6 +10059,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "smudgy_i18n",
  "thiserror 2.0.12",
  "tokio",
  "tokio-test",
@@ -10111,6 +10112,7 @@ name = "smudgy_i18n"
 version = "0.4.1"
 dependencies = [
  "fluent-bundle",
+ "regex",
  "serde",
  "unic-langid",
 ]
@@ -10134,6 +10136,7 @@ dependencies = [
  "iced",
  "iced_anim",
  "smudgy_cloud",
+ "smudgy_i18n",
  "smudgy_theme",
 ]
 
@@ -10222,6 +10225,7 @@ dependencies = [
  "serde",
  "serde_json",
  "smudgy_cloud",
+ "smudgy_i18n",
  "smudgy_map_widget",
  "smudgy_theme",
  "thiserror 2.0.12",

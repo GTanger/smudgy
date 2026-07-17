@@ -194,7 +194,7 @@ fn secret_field_row<'a>(
     .align_y(Vertical::Center);
     if let Some(msg) = clear {
         field = field.push(
-            button(text("Clear").size(11.0))
+            button(text(smudgy_i18n::t!("action-clear")).size(11.0))
                 .style(button_style::secondary)
                 .on_press(msg),
         );
@@ -900,21 +900,23 @@ fn conflict_message(name: &str, ranges: &[RequirerRange]) -> String {
         .filter(|r| r.range.as_deref().is_some_and(|s| !s.trim().is_empty()))
         .collect();
     if let [first, .., last] = constrained.as_slice() {
-        format!(
-            "{} needs {name} {} but {} needs {name} {}",
-            first.requirer,
-            first.range.as_deref().unwrap_or("*"),
-            last.requirer,
-            last.range.as_deref().unwrap_or("*"),
+        smudgy_i18n::t!(
+            "package-conflict-two-requirers",
+            "first" => &first.requirer,
+            "name" => name,
+            "first_range" => first.range.as_deref().unwrap_or("*"),
+            "last" => &last.requirer,
+            "last_range" => last.range.as_deref().unwrap_or("*"),
         )
     } else if let Some(only) = constrained.first() {
-        format!(
-            "no published version of {name} satisfies {} (required by {})",
-            only.range.as_deref().unwrap_or("*"),
-            only.requirer,
+        smudgy_i18n::t!(
+            "package-conflict-one-requirer",
+            "name" => name,
+            "range" => only.range.as_deref().unwrap_or("*"),
+            "requirer" => &only.requirer,
         )
     } else {
-        format!("no published version of {name} satisfies every requirer")
+        smudgy_i18n::t!("package-conflict-all-requirers", "name" => name)
     }
 }
 
@@ -988,8 +990,8 @@ struct PermissionLine {
 fn import_can_line(policy: ImportPolicy) -> Option<&'static str> {
     match policy {
         ImportPolicy::None => None,
-        ImportPolicy::Registries => Some("download & run code from public registries (npm, jsr)"),
-        ImportPolicy::Any => Some("download & run code from anywhere on the web"),
+        ImportPolicy::Registries => Some(smudgy_i18n::ts!("permission-import-registries")),
+        ImportPolicy::Any => Some(smudgy_i18n::ts!("permission-import-anywhere")),
     }
 }
 
@@ -1004,7 +1006,7 @@ fn permission_can_lines(perms: &PackagePermissions) -> Vec<PermissionLine> {
     for host in &perms.net {
         if seen_hosts.insert(host.trim().to_lowercase()) {
             lines.push(PermissionLine {
-                head: "connect to".to_string(),
+                head: smudgy_i18n::t!("permission-connect-to"),
                 detail: Some(host.clone()),
             });
         }
@@ -1018,19 +1020,19 @@ fn permission_can_lines(perms: &PackagePermissions) -> Vec<PermissionLine> {
     // by the enforcement guardrail (it would escape the data dir), so it isn't a real capability.
     for path in perms.read.iter().filter(|p| path_grant_enforced(p)) {
         lines.push(PermissionLine {
-            head: "read".to_string(),
+            head: smudgy_i18n::t!("permission-read"),
             detail: Some(pretty_path(path)),
         });
     }
     for path in perms.write.iter().filter(|p| path_grant_enforced(p)) {
         lines.push(PermissionLine {
-            head: "write".to_string(),
+            head: smudgy_i18n::t!("permission-write"),
             detail: Some(pretty_path(path)),
         });
     }
     for var in &perms.env {
         lines.push(PermissionLine {
-            head: "read environment variable".to_string(),
+            head: smudgy_i18n::t!("permission-read-env"),
             detail: Some(var.clone()),
         });
     }
@@ -1055,45 +1057,37 @@ fn cap_line(head: &str) -> PermissionLine {
 fn smudgy_can_lines(caps: &SmudgyCapabilities) -> Vec<PermissionLine> {
     let mut out = Vec::new();
     if caps.create_aliases {
-        out.push(cap_line("Create aliases"));
+        out.push(cap_line(smudgy_i18n::ts!("permission-can-create-aliases")));
     }
     if caps.create_triggers {
-        out.push(cap_line(
-            "Create triggers",
-        ));
+        out.push(cap_line(smudgy_i18n::ts!("permission-can-create-triggers")));
     }
     if let Some(line) = send_can_line(caps) {
         out.push(cap_line(&line));
     }
     if caps.echo {
-        out.push(cap_line("Echo text to the screen"));
+        out.push(cap_line(smudgy_i18n::ts!("permission-can-echo")));
     }
     if caps.reach_others {
-        out.push(cap_line("Interact with other open sessions"));
+        out.push(cap_line(smudgy_i18n::ts!("permission-can-sessions")));
     }
     if caps.change_display {
-        out.push(cap_line(
-            "Hide, restyle, inject, or replace game text; as well as see the current line",
-        ));
+        out.push(cap_line(smudgy_i18n::ts!("permission-can-display")));
     }
     if caps.mapper_read {
-        out.push(cap_line("Read your maps"));
+        out.push(cap_line(smudgy_i18n::ts!("permission-can-map-read")));
     }
     if caps.mapper_write {
-        out.push(cap_line("Change your maps"));
+        out.push(cap_line(smudgy_i18n::ts!("permission-can-map-write")));
     }
     if caps.widgets {
-        out.push(cap_line("Create and change on-screen widgets"));
+        out.push(cap_line(smudgy_i18n::ts!("permission-can-widgets")));
     }
     if caps.panes {
-        out.push(cap_line(
-            "Create session output panes and route game lines into them",
-        ));
+        out.push(cap_line(smudgy_i18n::ts!("permission-can-panes")));
     }
     if caps.gmcp_send {
-        out.push(cap_line(
-            "Send GMCP messages to the game and manage GMCP modules",
-        ));
+        out.push(cap_line(smudgy_i18n::ts!("permission-can-gmcp")));
     }
     out
 }
@@ -1103,14 +1097,9 @@ fn smudgy_can_lines(caps: &SmudgyCapabilities) -> Vec<PermissionLine> {
 /// (bypassing them). `None` when neither is granted (the "cannot send" row covers that case).
 fn send_can_line(caps: &SmudgyCapabilities) -> Option<String> {
     let line = match (caps.send, caps.send_direct) {
-        (true, true) => {
-            "Send commands to the game both as if you typed them (through your aliases, \
-             which they can re-trigger) and directly (bypassing your aliases)"
-        }
-        (true, false) => {
-            "Send commands to the game as if you typed them, possibly triggering aliases"
-        }
-        (false, true) => "Send commands straight to the game, bypassing your aliases",
+        (true, true) => smudgy_i18n::ts!("permission-can-send-both"),
+        (true, false) => smudgy_i18n::ts!("permission-can-send-aliases"),
+        (false, true) => smudgy_i18n::ts!("permission-can-send-direct"),
         (false, false) => return None,
     };
     Some(line.to_string())
@@ -1120,7 +1109,7 @@ fn send_can_line(caps: &SmudgyCapabilities) -> Option<String> {
 /// either is, [`send_can_line`] already conveys the scope).
 fn send_cannot_line(caps: &SmudgyCapabilities) -> Option<&'static str> {
     match (caps.send, caps.send_direct) {
-        (false, false) => Some("send commands to the game"),
+        (false, false) => Some(smudgy_i18n::ts!("permission-cannot-send")),
         _ => None,
     }
 }
@@ -1130,43 +1119,43 @@ fn send_cannot_line(caps: &SmudgyCapabilities) -> Option<&'static str> {
 fn smudgy_cannot_lines(caps: &SmudgyCapabilities) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     if !caps.create_aliases {
-        out.push("create aliases".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-aliases"));
     }
     if !caps.create_triggers {
-        out.push("create triggers that act on game output".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-triggers"));
     }
     if let Some(line) = send_cannot_line(caps) {
         out.push(line.to_string());
     }
     if !caps.echo {
-        out.push("echo text to the screen".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-echo"));
     }
     if !caps.reach_others {
-        out.push("reach your other sessions".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-sessions"));
     }
     if !caps.change_display {
-        out.push("interact with the game's terminal (hide, style, inject, or replace text; or see the current line)".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-display"));
     }
     if !caps.mapper_read {
-        out.push("read your maps".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-map-read"));
     }
     if !caps.mapper_write {
-        out.push("change your maps".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-map-write"));
     }
     if !caps.widgets {
-        out.push("create on-screen widgets".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-widgets"));
     }
     if !caps.panes {
-        out.push("create or access other panes".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-panes"));
     }
     if !caps.interop_write {
-        out.push("broadcast events or publish shared state".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-interop-write"));
     }
     if !caps.interop_read {
-        out.push("listen for events or read shared state".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-interop-read"));
     }
     if !caps.gmcp_send {
-        out.push("send GMCP messages to the game".to_string());
+        out.push(smudgy_i18n::t!("permission-cannot-gmcp"));
     }
     out
 }
@@ -1174,7 +1163,7 @@ fn smudgy_cannot_lines(caps: &SmudgyCapabilities) -> Vec<String> {
 /// One-line summary of a fully-sandboxed package with no granted access — the calm "nothing to
 /// worry about" register, shown wherever the consented union is empty.
 fn sandbox_summary() -> &'static str {
-    "Runs fully sandboxed — no access to your files, network, or system."
+    smudgy_i18n::ts!("permission-sandbox-summary")
 }
 
 /// The capabilities a sandboxed package can *never* be granted, regardless of its manifest —
@@ -1184,8 +1173,8 @@ fn sandbox_summary() -> &'static str {
 /// can't reach into the data/state of your other packages or scripts.)
 fn never_grantable_lines() -> [&'static str; 2] {
     [
-        "load native code / run other programs",
-        "read or change the data of your other packages or scripts",
+        smudgy_i18n::ts!("permission-never-native"),
+        smudgy_i18n::ts!("permission-never-other-data"),
     ]
 }
 
@@ -1200,30 +1189,26 @@ fn permission_cannot_lines(perms: &PackagePermissions) -> Vec<String> {
     // opening or accepting network connections — and name the code-download carve-out.
     if perms.net.is_empty() {
         if perms.import.is_none() {
-            lines.push("connect to the internet / any server".to_string());
+            lines.push(smudgy_i18n::t!("permission-cannot-network"));
         } else {
-            lines.push(
-                "connect to or receive connections over the network (it can still download code \
-                 to run, as noted above)"
-                    .to_string(),
-            );
+            lines.push(smudgy_i18n::t!("permission-cannot-network-except-import"));
         }
     }
     // `import` and `net` are independent: granting `net` never grants the ability to pull in new
     // code, so this assurance holds even for a net-enabled package.
     if perms.import.is_none() {
-        lines.push("download or run code from npm, jsr, or the web".to_string());
+        lines.push(smudgy_i18n::t!("permission-cannot-import"));
     }
     // "cannot read/write" when no grant SURVIVES enforcement — so a package whose only path grant is
     // a dropped `$DATA/..` reads as "cannot", consistent with the (filtered) can-list above.
     if !perms.read.iter().any(|p| path_grant_enforced(p)) {
-        lines.push("read your files".to_string());
+        lines.push(smudgy_i18n::t!("permission-cannot-read-files"));
     }
     if !perms.write.iter().any(|p| path_grant_enforced(p)) {
-        lines.push("modify your files".to_string());
+        lines.push(smudgy_i18n::t!("permission-cannot-write-files"));
     }
     if perms.env.is_empty() {
-        lines.push("read environment variables".to_string());
+        lines.push(smudgy_i18n::t!("permission-cannot-read-env"));
     }
     // The un-granted smudgy op-capabilities (send/echo/automations/display/mapper/widgets).
     lines.extend(smudgy_cannot_lines(&perms.smudgy));
@@ -1276,14 +1261,13 @@ enum PublishVerdict {
 /// the server's reservation key.
 fn publish_verdict(version: &str, published: &[VersionListItem]) -> PublishVerdict {
     let Ok(parsed) = semver::Version::parse(version) else {
-        return PublishVerdict::Invalid(format!(
-            "\u{201c}{version}\u{201d} is not a valid semver version (e.g. 1.2.3). Edit the version in the Manifest section above."
+        return PublishVerdict::Invalid(smudgy_i18n::t!(
+            "package-version-invalid-semver",
+            "version" => version
         ));
     };
     if !parsed.build.is_empty() {
-        return PublishVerdict::Invalid(
-            "Version must not include build metadata (drop the +\u{2026} suffix).".to_string(),
-        );
+        return PublishVerdict::Invalid(smudgy_i18n::t!("package-version-build-metadata"));
     }
     let canonical = parsed.to_string();
     if published.iter().any(|v| v.version == canonical) {
@@ -1420,7 +1404,10 @@ impl AutomationsWindow {
         if is_installed_pkg
             && let Err(e) = shared_packages::set_enabled(&self.server_name, &spec, new_enabled)
         {
-            self.manage_feedback = Some(format!("Failed to update enabled state: {e}"));
+            self.manage_feedback = Some(smudgy_i18n::t!(
+                "package-enable-state-failed",
+                "error" => e
+            ));
             return Update::none();
         }
         self.graph.intent.insert(spec.clone(), new_enabled);
@@ -1438,9 +1425,13 @@ impl AutomationsWindow {
                 .map(|s| package_display_name(s).to_string())
                 .collect();
             if dropped.is_empty() {
-                format!("Disabled {name}.")
+                smudgy_i18n::t!("package-disabled-name", "name" => &name)
             } else {
-                format!("Disabled {name} + {} (no longer required).", dropped.join(", "))
+                smudgy_i18n::t!(
+                    "package-disabled-with-deps",
+                    "name" => &name,
+                    "dependencies" => dropped.join(", ")
+                )
             }
         } else {
             let added: Vec<String> = after
@@ -1449,9 +1440,13 @@ impl AutomationsWindow {
                 .map(|s| package_display_name(s).to_string())
                 .collect();
             if added.is_empty() {
-                format!("Enabled {name}.")
+                smudgy_i18n::t!("package-enabled-name", "name" => &name)
             } else {
-                format!("Enabled {name} + {} (dependencies).", added.join(", "))
+                smudgy_i18n::t!(
+                    "package-enabled-with-deps",
+                    "name" => &name,
+                    "dependencies" => added.join(", ")
+                )
             }
         };
         // Reload the live session so the engine re-partitions (loads/drops the package now) — only
@@ -1478,14 +1473,20 @@ impl AutomationsWindow {
             shared_packages::install_package(&self.server_name, &target_spec, UpdateMode::Auto, true)
         };
         if let Err(e) = result {
-            return Update::with_task(self.show_toast(format!("Couldn't switch: {e}")));
+            return Update::with_task(self.show_toast(smudgy_i18n::t!(
+                "package-switch-failed",
+                "error" => e
+            )));
         }
         for sib in &siblings {
             if sib != &target_spec {
                 let _ = shared_packages::set_enabled(&self.server_name, sib, false);
             }
         }
-        let toast = self.show_toast(format!("Switched to {}.", package_display_name(&target_spec)));
+        let toast = self.show_toast(smudgy_i18n::t!(
+            "package-switched",
+            "name" => package_display_name(&target_spec)
+        ));
         Update::new(
             Task::batch([
                 Task::done(Message::LoadInstalledPackages),
@@ -1513,9 +1514,17 @@ impl AutomationsWindow {
             shared_packages::install_package(&self.server_name, &own_spec, UpdateMode::Auto, true)
         };
         if let Err(e) = result {
-            return Update::with_task(self.show_toast(format!("Couldn't update {name}: {e}")));
+            return Update::with_task(self.show_toast(smudgy_i18n::t!(
+                "package-update-failed",
+                "name" => &name,
+                "error" => e
+            )));
         }
-        let toast = self.show_toast(format!("{} {name}.", if active { "Disabled" } else { "Enabled" }));
+        let toast = self.show_toast(if active {
+            smudgy_i18n::t!("package-disabled-name", "name" => &name)
+        } else {
+            smudgy_i18n::t!("package-enabled-name", "name" => &name)
+        });
         Update::new(
             Task::batch([
                 Task::done(Message::LoadInstalledPackages),
@@ -1932,7 +1941,10 @@ impl AutomationsWindow {
         };
         if let Err(e) = shared_packages::set_update_mode(&self.server_name, &specifier, mode.clone())
         {
-            self.manage_feedback = Some(format!("Failed to set update mode: {e}"));
+            self.manage_feedback = Some(smudgy_i18n::t!(
+                "package-update-mode-failed",
+                "error" => e
+            ));
             return Update::none();
         }
         if let Some(pkg) = self
@@ -1994,7 +2006,10 @@ impl AutomationsWindow {
         // no-op since the package is still there).
         let survives = !self.graph.enabled_dependents(&specifier).is_empty();
         if let Err(e) = shared_packages::uninstall_package(&self.server_name, &specifier) {
-            self.manage_feedback = Some(format!("Uninstall failed: {e}"));
+            self.manage_feedback = Some(smudgy_i18n::t!(
+                "package-uninstall-failed",
+                "error" => e
+            ));
             return Update::none();
         }
         // Also remove the dependents that `require` this package (forced — they'd break without it)
@@ -2007,10 +2022,11 @@ impl AutomationsWindow {
             match shared_packages::uninstall_package(&self.server_name, spec) {
                 Ok(()) => also_removed.push(package_display_name(spec).to_string()),
                 Err(e) => {
-                    self.manage_feedback = Some(format!(
-                        "Removed {}, but failed to remove {}: {e}",
-                        package_display_name(&specifier),
-                        package_display_name(spec)
+                    self.manage_feedback = Some(smudgy_i18n::t!(
+                        "package-partial-remove-failed",
+                        "removed" => package_display_name(&specifier),
+                        "failed" => package_display_name(spec),
+                        "error" => e
                     ));
                 }
             }
@@ -2026,11 +2042,15 @@ impl AutomationsWindow {
         self.pane = Pane::Dashboard;
         let name = package_display_name(&specifier);
         let toast = self.show_toast(if survives {
-            format!("Removed the standalone install of {name}; it stays installed as a dependency.")
+            smudgy_i18n::t!("package-removed-standalone-toast", "name" => name)
         } else if also_removed.is_empty() {
-            format!("Uninstalled {name}.")
+            smudgy_i18n::t!("package-uninstalled-toast", "name" => name)
         } else {
-            format!("Uninstalled {name} + {}.", also_removed.join(", "))
+            smudgy_i18n::t!(
+                "package-uninstalled-with",
+                "name" => name,
+                "dependencies" => also_removed.join(", ")
+            )
         });
         Update::new(
             Task::batch([Task::done(Message::LoadInstalledPackages), toast]),
@@ -2042,11 +2062,11 @@ impl AutomationsWindow {
 
     pub(super) fn fork_installed(&mut self) -> Update<Message, Event> {
         let Some(source_specifier) = self.installed_open.as_ref().map(|p| p.specifier.clone()) else {
-            self.manage_feedback = Some("No package selected.".to_string());
+            self.manage_feedback = Some(smudgy_i18n::t!("package-none-selected"));
             return Update::none();
         };
         let Some(resolved) = self.installed_detail.clone() else {
-            self.manage_feedback = Some("Package detail not loaded yet.".to_string());
+            self.manage_feedback = Some(smudgy_i18n::t!("package-detail-not-loaded"));
             return Update::none();
         };
 
@@ -2068,7 +2088,10 @@ impl AutomationsWindow {
         let client = self.package_client();
         let server = self.server_name.clone();
         self.manage_busy = true;
-        self.manage_feedback = Some(format!("Copying to a local package \u{201c}{new_name}\u{201d}\u{2026}"));
+        self.manage_feedback = Some(smudgy_i18n::t!(
+            "package-copying-local",
+            "name" => &new_name
+        ));
         Update::with_task(Task::perform(
             async move {
                 let mut modules = Vec::new();
@@ -2084,7 +2107,9 @@ impl AutomationsWindow {
                     });
                 }
                 let manifest: PackageManifest = serde_json::from_value(resolved.manifest.clone())
-                    .map_err(|e| format!("parse manifest: {e}"))?;
+                    .map_err(|e| {
+                        smudgy_i18n::t!("package-parse-manifest-failed", "error" => e)
+                    })?;
                 local_packages::fork_to_local(&server, &new_name, &manifest, &modules)
                     .map_err(|e| e.to_string())?;
                 // Carry the source's README into the fork (resolve includes it), so a forked
@@ -2145,20 +2170,16 @@ impl AutomationsWindow {
             Ok((name, activation)) => {
                 let (feedback, toast) = match activation {
                     ForkActivation::TookOver => (
-                        format!(
-                            "Editing a copy named \u{201c}{name}\u{201d} — it's now active and the original installed copy was removed."
-                        ),
-                        format!("Now editing {name} (installed copy removed)."),
+                        smudgy_i18n::t!("package-fork-took-over", "name" => &name),
+                        smudgy_i18n::t!("package-fork-took-over-toast", "name" => &name),
                     ),
                     ForkActivation::Mirrored => (
-                        format!("Editing a copy named \u{201c}{name}\u{201d} — your local copy is now active."),
-                        format!("Now editing {name}."),
+                        smudgy_i18n::t!("package-fork-mirrored", "name" => &name),
+                        smudgy_i18n::t!("package-fork-mirrored-toast", "name" => &name),
                     ),
                     ForkActivation::Inactive => (
-                        format!(
-                            "Editing a copy named \u{201c}{name}\u{201d} — left disabled so you can read it; enable it to run."
-                        ),
-                        format!("Created local copy {name} (disabled)."),
+                        smudgy_i18n::t!("package-fork-inactive", "name" => &name),
+                        smudgy_i18n::t!("package-fork-inactive-toast", "name" => &name),
                     ),
                 };
                 self.manage_feedback = Some(feedback);
@@ -2183,7 +2204,10 @@ impl AutomationsWindow {
                 }
             }
             Err(e) => {
-                self.manage_feedback = Some(format!("Couldn't edit a copy: {e}"));
+                self.manage_feedback = Some(smudgy_i18n::t!(
+                    "package-fork-failed",
+                    "error" => e
+                ));
                 Update::none()
             }
         }
@@ -2200,16 +2224,22 @@ impl AutomationsWindow {
         let dir = match local_packages::packages_dir(&self.server_name) {
             Ok(dir) => dir.join(&name),
             Err(e) => {
-                return Update::with_task(self.show_toast(format!("Couldn't locate the folder: {e}")));
+                return Update::with_task(self.show_toast(smudgy_i18n::t!(
+                    "package-folder-locate-failed",
+                    "error" => e
+                )));
             }
         };
         if !dir.exists() {
             return Update::with_task(
-                self.show_toast("That package folder doesn't exist yet.".to_string()),
+                self.show_toast(smudgy_i18n::t!("package-folder-missing")),
             );
         }
         if let Err(e) = open::that(&dir) {
-            return Update::with_task(self.show_toast(format!("Couldn't open the folder: {e}")));
+            return Update::with_task(self.show_toast(smudgy_i18n::t!(
+                "package-folder-open-failed",
+                "error" => e
+            )));
         }
         Update::none()
     }
@@ -2242,7 +2272,10 @@ impl AutomationsWindow {
             return Update::none();
         }
         if let Err(e) = local_packages::rename_local_package(&self.server_name, &old_name, &new_name) {
-            self.authoring_feedback = Some(format!("Rename failed: {e}"));
+            self.authoring_feedback = Some(smudgy_i18n::t!(
+                "package-rename-failed",
+                "error" => e
+            ));
             return Update::none();
         }
 
@@ -2271,7 +2304,10 @@ impl AutomationsWindow {
 
         self.rename_buffer = None;
         self.authoring_feedback = None;
-        let toast = self.show_toast(format!("Renamed to {new_name}."));
+        let toast = self.show_toast(smudgy_i18n::t!(
+            "package-renamed",
+            "name" => &new_name
+        ));
         let tasks = Task::batch([
             Task::done(Message::LoadLocalPackages),
             Task::done(Message::LoadInstalledPackages),
@@ -2312,7 +2348,10 @@ impl AutomationsWindow {
         };
         self.confirm_trust = false;
         if let Err(e) = shared_packages::set_trusted(&self.server_name, &specifier, trusted) {
-            self.manage_feedback = Some(format!("Failed to update trust: {e}"));
+            self.manage_feedback = Some(smudgy_i18n::t!(
+                "package-trust-update-failed",
+                "error" => e
+            ));
             return Update::none();
         }
         // Mirror the flip into the in-memory copies so the pane reflects it immediately.
@@ -2332,9 +2371,9 @@ impl AutomationsWindow {
         }
         let name = package_display_name(&specifier).to_string();
         let toast = self.show_toast(if trusted {
-            format!("Unsandboxed {name}")
+            smudgy_i18n::t!("package-unsandboxed-toast", "name" => &name)
         } else {
-            format!("Sandboxed {name}")
+            smudgy_i18n::t!("package-sandboxed-toast", "name" => &name)
         });
         Update::new(
             toast,
@@ -2379,12 +2418,16 @@ impl AutomationsWindow {
             Ok(())
         };
         if let Err(e) = result {
-            return Update::with_task(self.show_toast(format!("Couldn't update {name}: {e}")));
+            return Update::with_task(self.show_toast(smudgy_i18n::t!(
+                "package-update-failed",
+                "name" => &name,
+                "error" => e
+            )));
         }
         let toast = self.show_toast(if unsandboxed {
-            format!("{name} now runs unsandboxed (full access).")
+            smudgy_i18n::t!("package-local-unsandboxed-toast", "name" => &name)
         } else {
-            format!("{name} returned to its manifest sandbox.")
+            smudgy_i18n::t!("package-local-sandboxed-toast", "name" => &name)
         });
         Update::new(
             Task::batch([
@@ -2416,7 +2459,10 @@ impl AutomationsWindow {
         if let Err(e) =
             shared_packages::record_consent(&self.server_name, &delta.specifier, &delta.new_union)
         {
-            self.manage_feedback = Some(format!("Failed to record consent: {e}"));
+            self.manage_feedback = Some(smudgy_i18n::t!(
+                "package-consent-record-failed",
+                "error" => e
+            ));
             // Re-show the delta so the user can retry.
             self.update_delta = Some(delta);
             return Update::none();
@@ -2431,9 +2477,9 @@ impl AutomationsWindow {
         if let Some(open) = &mut self.installed_open {
             open.consented_permissions = Some(delta.new_union);
         }
-        let toast = self.show_toast(format!(
-            "Updated permissions for {}",
-            delta.name
+        let toast = self.show_toast(smudgy_i18n::t!(
+            "package-permissions-updated",
+            "name" => &delta.name
         ));
         Update::new(
             toast,
@@ -2491,13 +2537,17 @@ impl AutomationsWindow {
                 self.seed_param_config(spec, params);
             }
             Ok(None) => {
-                self.pane =
-                    Pane::Error(std::sync::Arc::new(vec![format!("Package '{name}' not found")]));
+                self.pane = Pane::Error(std::sync::Arc::new(vec![smudgy_i18n::t!(
+                    "package-not-found",
+                    "name" => &name
+                )]));
                 return Update::none();
             }
             Err(e) => {
-                self.pane = Pane::Error(std::sync::Arc::new(vec![format!(
-                    "Failed to load package '{name}': {e}"
+                self.pane = Pane::Error(std::sync::Arc::new(vec![smudgy_i18n::t!(
+                    "package-load-failed",
+                    "name" => &name,
+                    "error" => e
                 )]));
                 return Update::none();
             }
@@ -2571,7 +2621,13 @@ impl AutomationsWindow {
                 self.dirty = false;
                 self.owned_selected_file = Some(subpath);
             }
-            Err(e) => self.authoring_feedback = Some(format!("Failed to read {subpath}: {e}")),
+            Err(e) => {
+                self.authoring_feedback = Some(smudgy_i18n::t!(
+                    "package-file-read-failed",
+                    "path" => &subpath,
+                    "error" => e
+                ));
+            }
         }
         Update::none()
     }
@@ -2587,7 +2643,10 @@ impl AutomationsWindow {
         if let Err(e) =
             local_packages::write_local_file(&self.server_name, &name, &subpath, &self.editor_content.text())
         {
-            self.authoring_feedback = Some(format!("Save failed: {e}"));
+            self.authoring_feedback = Some(smudgy_i18n::t!(
+                "package-file-save-failed",
+                "error" => e
+            ));
             return Update::none();
         }
         self.dirty = false;
@@ -2595,7 +2654,10 @@ impl AutomationsWindow {
             self.local_readme = package.readme.as_deref().map(markdown::Content::parse);
             self.local_package = Some(Box::new(package));
         }
-        Update::with_task(self.show_toast(format!("Saved {subpath}.")))
+        Update::with_task(self.show_toast(smudgy_i18n::t!(
+            "package-file-saved",
+            "path" => &subpath
+        )))
     }
 
     pub(super) fn publish_owned(&mut self) -> Update<Message, Event> {
@@ -2605,7 +2667,10 @@ impl AutomationsWindow {
         self.authoring_busy = true;
         // Shown live while the (possibly slow) tsc declaration pass + upload run; the
         // outcome — including any non-fatal tsc warnings — lands in `PublishFinished`.
-        self.authoring_feedback = Some(format!("Generating declarations & publishing {name}…"));
+        self.authoring_feedback = Some(smudgy_i18n::t!(
+            "package-publishing-progress",
+            "name" => &name
+        ));
         let client = self.package_client();
         let server = self.server_name.clone();
         Update::with_task(Task::perform(
@@ -2623,7 +2688,10 @@ impl AutomationsWindow {
             return Update::none();
         };
         if let Err(e) = local_packages::delete_local_package(&self.server_name, &name) {
-            self.authoring_feedback = Some(format!("Delete failed: {e}"));
+            self.authoring_feedback = Some(smudgy_i18n::t!(
+                "package-delete-failed",
+                "error" => e
+            ));
             return Update::none();
         }
         // The folder was the package: purge the lockfile installs that ran it, or they linger as
@@ -2703,7 +2771,10 @@ impl AutomationsWindow {
         self.manifest_editing = false;
         self.selection = Selection::Dashboard;
         self.pane = Pane::Dashboard;
-        let toast = self.show_toast(format!("Deleted package {name}."));
+        let toast = self.show_toast(smudgy_i18n::t!(
+            "package-deleted-toast",
+            "name" => &name
+        ));
         // Reload same-server sessions like an uninstall does: the deleted package stops running
         // and the engine rebuild prunes its now-orphaned `.isolates/<slug>` scratch dir.
         // Re-read the installed list + re-resolve the graph too: deleting a local package can change
@@ -2812,7 +2883,10 @@ impl AutomationsWindow {
         }
         if let Err(e) = local_packages::scaffold_local_package(&self.server_name, &name) {
             if let Pane::NewPackage { error, .. } = &mut self.pane {
-                *error = Some(format!("Failed to create package: {e}"));
+                *error = Some(smudgy_i18n::t!(
+                    "package-create-failed",
+                    "error" => e
+                ));
             }
             return Update::none();
         }
@@ -3277,7 +3351,10 @@ impl AutomationsWindow {
             shared_packages::install_package(&self.server_name, &specifier, UpdateMode::Auto, enable)
         {
             if let Some(prompt) = self.consent_prompt.as_mut() {
-                prompt.error = Some(format!("Failed to install: {e}"));
+                prompt.error = Some(smudgy_i18n::t!(
+                    "package-install-failed",
+                    "error" => e
+                ));
             }
             return Update::none();
         }
@@ -3285,7 +3362,10 @@ impl AutomationsWindow {
             // The lock entry is written; surface the consent-record failure rather than roll back
             // (a missing record just means the engine denies everything until consent is recorded).
             if let Some(prompt) = self.consent_prompt.as_mut() {
-                prompt.error = Some(format!("Installed, but failed to record consent: {e}"));
+                prompt.error = Some(smudgy_i18n::t!(
+                    "package-installed-consent-failed",
+                    "error" => e
+                ));
             }
             return Update::none();
         }
@@ -3303,8 +3383,11 @@ impl AutomationsWindow {
                 enable,
             ) {
                 if let Some(prompt) = self.consent_prompt.as_mut() {
-                    prompt.error =
-                        Some(format!("Failed to install required {}: {e}", root.name));
+                    prompt.error = Some(smudgy_i18n::t!(
+                        "package-required-install-failed",
+                        "name" => &root.name,
+                        "error" => e
+                    ));
                 }
                 return Update::none();
             }
@@ -3417,9 +3500,9 @@ impl AutomationsWindow {
         self.graph.intent.insert(specifier.to_string(), enable);
         let name = package_display_name(specifier);
         let toast = self.show_toast(if enable {
-            format!("Installed and enabled {name}.")
+            smudgy_i18n::t!("package-installed-enabled-toast", "name" => name)
         } else {
-            format!("Installed {name} — review it, then enable it to run.")
+            smudgy_i18n::t!("package-installed-review-toast", "name" => name)
         });
         // Only an enabled install reloads the live session; "install, don't enable" stays inert so
         // the user can review the code before it executes.
@@ -3481,22 +3564,38 @@ impl AutomationsWindow {
             if is_secret_string(param) {
                 let text = secret_text(state);
                 if text.is_empty() {
-                    return self.fail_prompt(format!("'{}' is required.", param.key));
+                    return self.fail_prompt(smudgy_i18n::t!(
+                        "package-field-required",
+                        "field" => &param.key
+                    ));
                 }
                 plan.push((param.key.clone(), Persist::Secret(text)));
             } else {
                 match state.map_or(Ok(None), |s| param_values::to_json(param, s)) {
                     Ok(Some(value)) => plan.push((param.key.clone(), Persist::Value(value))),
-                    Ok(None) => return self.fail_prompt(format!("'{}' is required.", param.key)),
+                    Ok(None) => {
+                        return self.fail_prompt(smudgy_i18n::t!(
+                            "package-field-required",
+                            "field" => &param.key
+                        ));
+                    }
                     Err(reason) => {
-                        return self.fail_prompt(format!("'{}': {reason}", param.key));
+                        return self.fail_prompt(smudgy_i18n::t!(
+                            "package-field-invalid",
+                            "field" => &param.key,
+                            "reason" => reason
+                        ));
                     }
                 }
             }
         }
         for (key, persist) in &plan {
             if let Err(e) = persist.write(&self.server_name, &specifier, key) {
-                return self.fail_prompt(format!("Failed to save '{key}': {e}"));
+                return self.fail_prompt(smudgy_i18n::t!(
+                    "package-field-save-failed",
+                    "field" => key,
+                    "error" => e
+                ));
             }
         }
         // The package was already installed + consented at the Grant step; this only saves
@@ -3565,7 +3664,10 @@ impl AutomationsWindow {
             if is_secret_string(param) {
                 let text = secret_text(state);
                 if param.required && text.is_empty() && !secret_stored.contains(&param.key) {
-                    return self.fail_config(format!("'{}' is required.", param.key));
+                    return self.fail_config(smudgy_i18n::t!(
+                        "package-field-required",
+                        "field" => &param.key
+                    ));
                 }
                 // A non-empty box replaces the secret; an empty box keeps whatever is stored.
                 if !text.is_empty() {
@@ -3574,10 +3676,19 @@ impl AutomationsWindow {
             } else {
                 let projected = match state.map_or(Ok(None), |s| param_values::to_json(param, s)) {
                     Ok(value) => value,
-                    Err(reason) => return self.fail_config(format!("'{}': {reason}", param.key)),
+                    Err(reason) => {
+                        return self.fail_config(smudgy_i18n::t!(
+                            "package-field-invalid",
+                            "field" => &param.key,
+                            "reason" => reason
+                        ));
+                    }
                 };
                 if param.required && projected.is_none() {
-                    return self.fail_config(format!("'{}' is required.", param.key));
+                    return self.fail_config(smudgy_i18n::t!(
+                        "package-field-required",
+                        "field" => &param.key
+                    ));
                 }
                 // Don't materialize an untouched optional value: a manifest `default` stays a
                 // default the script applies, not a stored value. (A bool/dropdown always projects a
@@ -3592,7 +3703,11 @@ impl AutomationsWindow {
 
         for (key, persist) in &plan {
             if let Err(e) = persist.write(&self.server_name, &specifier, key) {
-                return self.fail_config(format!("Failed to save '{key}': {e}"));
+                return self.fail_config(smudgy_i18n::t!(
+                    "package-field-save-failed",
+                    "field" => key,
+                    "error" => e
+                ));
             }
         }
 
@@ -3621,7 +3736,7 @@ impl AutomationsWindow {
             .then(|| Event::ScriptsChanged {
                 server_name: self.server_name.clone(),
             });
-        Update::new(self.show_toast("Saved settings."), event)
+        Update::new(self.show_toast(smudgy_i18n::t!("package-settings-saved")), event)
     }
 
     /// Remove a stored secret param entirely (the only way to *unset* a secret, since the box can
@@ -3632,7 +3747,11 @@ impl AutomationsWindow {
         };
         if let Err(e) = shared_packages::clear_secret_param(&self.server_name, &specifier, &key) {
             if let Some(config) = self.param_config.as_mut() {
-                config.error = Some(format!("Failed to clear '{key}': {e}"));
+                config.error = Some(smudgy_i18n::t!(
+                    "package-clear-secret-failed",
+                    "field" => &key,
+                    "error" => e
+                ));
                 config.saved = false;
             }
             return Update::none();
@@ -3649,7 +3768,7 @@ impl AutomationsWindow {
             .then(|| Event::ScriptsChanged {
                 server_name: self.server_name.clone(),
             });
-        Update::new(self.show_toast("Cleared secret."), event)
+        Update::new(self.show_toast(smudgy_i18n::t!("package-secret-cleared")), event)
     }
 
     pub(super) fn open_shared(&mut self) -> Update<Message, Event> {
@@ -3761,11 +3880,9 @@ impl AutomationsWindow {
         self.package_status(&self.local_own_spec(name))
     }
 
-    fn signed_out_banner<'a>(&self, what: &str) -> Elem<'a> {
+    fn signed_out_banner<'a>(&self) -> Elem<'a> {
         container(
-            text(format!(
-                "Sign in from the main window's Settings → Account to {what}."
-            ))
+            text(smudgy_i18n::t!("package-sign-in-shared"))
             .size(13.0),
         )
         .width(Length::Fill)
@@ -3783,7 +3900,7 @@ impl AutomationsWindow {
 
     pub(super) fn view_installed_package(&self) -> Elem<'_> {
         let Some(locked) = self.installed_open.as_deref() else {
-            return pane_scroll(column![text("No package selected.").size(13.0)]);
+            return pane_scroll(column![text(smudgy_i18n::t!("package-no-selection")).size(13.0)]);
         };
         let specifier = &locked.specifier;
         let name = package_display_name(specifier).to_string();
@@ -3823,27 +3940,18 @@ impl AutomationsWindow {
 
         // Context banner.
         let banner_text = if dep_only {
-            Some(
-                "Installed automatically as a dependency — its on/off state follows the packages \
-                 that need it, so it can't be toggled here."
-                    .to_string(),
-            )
+            Some(smudgy_i18n::t!("package-dependency-managed"))
         } else if !enabled_dependents.is_empty() {
             let who: Vec<String> = enabled_dependents
                 .iter()
                 .map(|s| package_display_name(s).to_string())
                 .collect();
-            Some(format!(
-                "You installed this directly, and {} also depends on it. It stays enabled until \
-                 nothing needs it.",
-                who.join(", ")
+            Some(smudgy_i18n::t!(
+                "package-direct-and-required",
+                "packages" => who.join(", ")
             ))
         } else if controllable && !effective {
-            Some(
-                "Disabled until you allow it. Review the README and source below, then enable it \
-                 when you trust it."
-                    .to_string(),
-            )
+            Some(smudgy_i18n::t!("package-disabled-review"))
         } else {
             None
         };
@@ -3882,19 +3990,19 @@ impl AutomationsWindow {
             .map(|delta| delta.version.clone());
         let mut meta = row![].spacing(20.0).align_y(Vertical::Center);
         if let Some(detail) = self.installed_detail.as_deref() {
-            meta = meta.push(metric("Author", &detail.owner_nickname));
+            meta = meta.push(metric(smudgy_i18n::ts!("package-metric-author"), &detail.owner_nickname));
         }
         if let Some(v) = &loaded {
-            meta = meta.push(metric("Loaded", &format!("v{v}")));
+            meta = meta.push(metric(smudgy_i18n::ts!("package-metric-loaded"), &format!("v{v}")));
         }
         if let Some(v) = &blocked_latest {
-            meta = meta.push(metric("Latest (blocked)", &format!("v{v}")));
+            meta = meta.push(metric(smudgy_i18n::ts!("package-metric-latest-blocked"), &format!("v{v}")));
         }
         meta = meta.push(metric(
-            "Update",
+            smudgy_i18n::ts!("package-metric-update"),
             match &locked.mode {
-                UpdateMode::Auto => "Auto",
-                UpdateMode::Pinned { .. } => "Pinned",
+                UpdateMode::Auto => smudgy_i18n::ts!("package-update-auto"),
+                UpdateMode::Pinned { .. } => smudgy_i18n::ts!("package-update-pinned"),
             },
         ));
         // Cloud rating + popularity (best-effort metadata; absent for a local/owned package or while
@@ -3902,7 +4010,7 @@ impl AutomationsWindow {
         if let Some(rating) = self.installed_rating.as_deref() {
             let star_color = crate::prefs::current().palette.output;
             meta = meta.push(rating_metric(rating.avg_rating, rating.rating_count, star_color));
-            meta = meta.push(metric("Installs", &rating.install_count.to_string()));
+            meta = meta.push(metric(smudgy_i18n::ts!("package-metric-installs"), &rating.install_count.to_string()));
         }
         body = body.push(meta);
         // DEFERRED (`script/REQUIRED-PACKAGES.md` "Version contention surfacing"): a small note here
@@ -3938,10 +4046,10 @@ impl AutomationsWindow {
 
         // Required by.
         if !enabled_dependents.is_empty() || !self.graph.required_by(specifier).is_empty() {
-            let mut req = Column::new().spacing(4.0).push(common::section_label("Required by"));
+            let mut req = Column::new().spacing(4.0).push(common::section_label(smudgy_i18n::ts!("package-required-by")));
             for parent in self.graph.required_by(specifier) {
                 let enabled = self.graph.effectively_enabled(&parent);
-                req = req.push(self.dep_link_row(&parent, enabled, "needs", None));
+                req = req.push(self.dep_link_row(&parent, enabled, smudgy_i18n::ts!("package-needs"), None));
             }
             body = body.push(req);
         }
@@ -3958,9 +4066,9 @@ impl AutomationsWindow {
         // Update mode (controllable only).
         if controllable {
             let mut update_row = row![
-                common::section_label("Update mode"),
+                common::section_label(smudgy_i18n::ts!("package-update-mode")),
                 radio(
-                    "Auto — track latest",
+                    smudgy_i18n::t!("package-update-auto-track"),
                     false,
                     Some(matches!(locked.mode, UpdateMode::Pinned { .. })),
                     |_| Message::SetInstalledUpdateMode(UpdateMode::Auto)
@@ -3977,7 +4085,7 @@ impl AutomationsWindow {
                     pick_list(self.installed_versions.clone(), current, |v| {
                         Message::SetInstalledUpdateMode(UpdateMode::Pinned { version: v })
                     })
-                    .placeholder("Pinned — pick a version…"),
+                    .placeholder(smudgy_i18n::ts!("package-update-pinned-placeholder")),
                 );
             }
             body = body.push(update_row);
@@ -3986,7 +4094,7 @@ impl AutomationsWindow {
         // Dependencies.
         let deps = self.graph.requires.get(specifier).cloned().unwrap_or_default();
         if !deps.is_empty() {
-            let mut dep_col = Column::new().spacing(4.0).push(common::section_label("Dependencies"));
+            let mut dep_col = Column::new().spacing(4.0).push(common::section_label(smudgy_i18n::ts!("package-dependencies")));
             for edge in &deps {
                 // This row exists because the open package (`specifier`) depends on
                 // `edge.specifier`, so its dot follows the parent's context: it greys when the
@@ -4011,7 +4119,11 @@ impl AutomationsWindow {
                     .map(|e| package_display_name(&e.specifier).to_string())
                     .collect();
                 dep_col = dep_col.push(
-                    text(format!("Enabling {name} will also enable {}.", names.join(", ")))
+                    text(smudgy_i18n::t!(
+                        "package-enabling-dependencies",
+                        "name" => &name,
+                        "dependencies" => names.join(", ")
+                    ))
                         .size(12.0)
                         .style(common::muted),
                 );
@@ -4034,10 +4146,7 @@ impl AutomationsWindow {
         if dep_only {
             body = body.push(
                 container(
-                    text(
-                        "This dependency is removed automatically once no installed package \
-                         requires it.",
-                    )
+                    text(smudgy_i18n::t!("package-dependency-auto-remove"))
                     .size(12.0)
                     .style(common::muted),
                 )
@@ -4066,10 +4175,10 @@ impl AutomationsWindow {
         // disabled" is reserved for the "Required by" parent rows (`is_dep` is `None`), which are
         // top-level packages the user actually toggles.
         let state = match (is_dep.is_some(), enabled) {
-            (true, true) => "active",
-            (true, false) => "inactive",
-            (false, true) => "enabled",
-            (false, false) => "disabled",
+            (true, true) => smudgy_i18n::ts!("package-state-active"),
+            (true, false) => smudgy_i18n::ts!("package-state-inactive"),
+            (false, true) => smudgy_i18n::ts!("package-state-enabled"),
+            (false, false) => smudgy_i18n::ts!("package-state-disabled"),
         };
         button(
             row![
@@ -4100,8 +4209,8 @@ impl AutomationsWindow {
     fn installed_file_browser(&self) -> Elem<'_> {
         let tab = self.installed_file_tab;
         let tabs = row![
-            installed_file_tab_button(tab, InstalledFileTab::Readme, "README"),
-            installed_file_tab_button(tab, InstalledFileTab::Source, "Source"),
+            installed_file_tab_button(tab, InstalledFileTab::Readme, smudgy_i18n::ts!("package-tab-readme")),
+            installed_file_tab_button(tab, InstalledFileTab::Source, smudgy_i18n::ts!("package-tab-source")),
         ]
         .spacing(4.0)
         .align_y(Vertical::Center);
@@ -4126,7 +4235,7 @@ impl AutomationsWindow {
                 .width(Length::Fill)
                 .into()
         } else {
-            container(text("No README.").size(13.0).style(common::muted))
+            container(text(smudgy_i18n::t!("package-no-readme")).size(13.0).style(common::muted))
                 .padding(10.0)
                 .into()
         }
@@ -4150,16 +4259,16 @@ impl AutomationsWindow {
         }
 
         let right: Elem = match detail {
-            None => container(text("Loading…").size(13.0).style(common::muted)).padding(10.0).into(),
+            None => container(text(smudgy_i18n::t!("package-loading")).size(13.0).style(common::muted)).padding(10.0).into(),
             Some(detail) if detail.modules.is_empty() => {
-                container(text("This package ships no source files.").size(13.0).style(common::muted))
+                container(text(smudgy_i18n::t!("package-no-source-files")).size(13.0).style(common::muted))
                     .padding(10.0)
                     .into()
             }
             Some(detail) => match self.installed_selected_file.as_deref() {
                 Some(subpath) => self.installed_source_view(detail, subpath),
                 None => container(
-                    text("Select a file to view its source.").size(13.0).style(common::muted),
+                    text(smudgy_i18n::t!("package-select-source")).size(13.0).style(common::muted),
                 )
                 .padding(10.0)
                 .into(),
@@ -4192,10 +4301,10 @@ impl AutomationsWindow {
                 .into()
         };
         let Some(module) = detail.modules.iter().find(|m| m.subpath == subpath) else {
-            return placeholder("This file is no longer part of the package.".to_string());
+            return placeholder(smudgy_i18n::t!("package-source-missing"));
         };
         match self.installed_source.get(&module.content_hash) {
-            None | Some(FilePreview::Loading) => placeholder("Fetching source\u{2026}".to_string()),
+            None | Some(FilePreview::Loading) => placeholder(smudgy_i18n::t!("package-source-fetching")),
             Some(FilePreview::Text { source, bidi }) => {
                 let code = scrollable(
                     container(text(source.as_str()).size(12.0).font(fonts::GEIST_MONO_VF))
@@ -4209,10 +4318,7 @@ impl AutomationsWindow {
                 if *bidi {
                     column![
                         container(
-                            text(
-                                "Heads up: this file contains bidirectional or invisible control \
-                                 characters, so the text shown may not match what actually runs."
-                            )
+                            text(smudgy_i18n::t!("package-source-bidi-warning"))
                             .size(11.0)
                             .style(common::muted),
                         )
@@ -4227,17 +4333,18 @@ impl AutomationsWindow {
                     code.height(Length::Fixed(320.0)).into()
                 }
             }
-            Some(FilePreview::Binary { size }) => placeholder(format!(
-                "Binary file ({}) \u{2014} not shown.",
-                human_size(*size)
+            Some(FilePreview::Binary { size }) => placeholder(smudgy_i18n::t!(
+                "package-source-binary",
+                "size" => human_size(*size)
             )),
-            Some(FilePreview::TooLarge { size }) => placeholder(format!(
-                "File is {} \u{2014} too large to preview (limit {}).",
-                human_size(*size),
-                human_size(SOURCE_PREVIEW_CAP_BYTES)
+            Some(FilePreview::TooLarge { size }) => placeholder(smudgy_i18n::t!(
+                "package-source-too-large",
+                "size" => human_size(*size),
+                "limit" => human_size(SOURCE_PREVIEW_CAP_BYTES)
             )),
-            Some(FilePreview::Error(error)) => placeholder(format!(
-                "Couldn't load source: {error}\nRe-select the file to try again."
+            Some(FilePreview::Error(error)) => placeholder(smudgy_i18n::t!(
+                "package-source-load-error",
+                "error" => error
             )),
         }
     }
@@ -4253,10 +4360,7 @@ impl AutomationsWindow {
     fn dependency_also_installed_note(&self, specifier: &str) -> Elem<'_> {
         column![
             container(
-                text(
-                    "This package is also installed on its own. Manage or uninstall it from its \
-                     own entry in the sidebar.",
-                )
+                text(smudgy_i18n::t!("package-also-installed"))
                 .size(12.0)
                 .style(common::muted),
             )
@@ -4264,7 +4368,7 @@ impl AutomationsWindow {
             .style(common::banner_style),
             row![
                 iced::widget::space::horizontal(),
-                button(text("Open its own pane").size(12.0))
+                button(text(smudgy_i18n::t!("package-open-own-pane")).size(12.0))
                     .style(button_style::secondary)
                     .on_press(Message::SelectInstalledPackage(specifier.to_string())),
             ]
@@ -4279,21 +4383,19 @@ impl AutomationsWindow {
     /// stays resolved as their dependency — so the uninstall action says exactly that rather than
     /// implying full removal.
     fn installed_actions(&self, name: &str, kept_by: &[String]) -> Elem<'_> {
-        let mut col = Column::new().spacing(10.0).push(common::section_label("Actions"));
+        let mut col = Column::new().spacing(10.0).push(common::section_label(smudgy_i18n::ts!("package-actions")));
 
         // Edit a copy (local fork). The button sits on its own row so the explainer text can't
         // squeeze it into a sliver.
         col = col.push(
             column![
-                text("Edit a copy").size(13.0),
-                text(
-                    "Make an editable local copy of this package."
-                )
+                text(smudgy_i18n::t!("package-edit-copy")).size(13.0),
+                text(smudgy_i18n::t!("package-edit-copy-help"))
                 .size(11.0)
                 .style(common::muted),
                 row![
                     iced::widget::space::horizontal(),
-                    button(text("Edit a copy").size(12.0))
+                    button(text(smudgy_i18n::t!("package-edit-copy")).size(12.0))
                         .style(button_style::secondary)
                         .on_press_maybe(
                             (!self.manage_busy && self.installed_detail.is_some())
@@ -4317,10 +4419,11 @@ impl AutomationsWindow {
                 .map(|s| package_display_name(s).to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
-            uninstall = uninstall.push(text("Remove standalone install").size(13.0)).push(
-                text(format!(
-                    "Removes the on-its-own copy. {name} stays installed as a dependency of \
-                     {kept_names}."
+            uninstall = uninstall.push(text(smudgy_i18n::t!("package-remove-standalone")).size(13.0)).push(
+                text(smudgy_i18n::t!(
+                    "package-remove-standalone-help",
+                    "name" => name,
+                    "packages" => kept_names
                 ))
                 .size(11.0)
                 .style(common::muted),
@@ -4340,9 +4443,10 @@ impl AutomationsWindow {
                     .join(", ");
                 uninstall = uninstall.push(
                     container(
-                        text(format!(
-                            "{names} {} {name} and will be removed too.",
-                            if breaks.len() == 1 { "requires" } else { "require" },
+                        text(smudgy_i18n::t!(
+                            "package-removal-required",
+                            "name" => name,
+                            "packages" => names
                         ))
                         .size(12.0)
                         .style(common::warning),
@@ -4362,9 +4466,9 @@ impl AutomationsWindow {
                     .join(", ");
                 uninstall = uninstall.push(
                     container(
-                        text(format!(
-                            "Also remove {names}? Nothing else requires {} afterward.",
-                            if orphans.len() == 1 { "it" } else { "them" },
+                        text(smudgy_i18n::t!(
+                            "package-remove-orphans",
+                            "packages" => names
                         ))
                         .size(12.0)
                         .style(common::muted),
@@ -4375,27 +4479,27 @@ impl AutomationsWindow {
                 );
             }
             let confirm_label = if !breaks.is_empty() {
-                "Remove all".to_string()
+                smudgy_i18n::t!("package-remove-all")
             } else if survives {
-                "Remove".to_string()
+                smudgy_i18n::t!("package-remove")
             } else if orphans.is_empty() {
-                "Uninstall".to_string()
+                smudgy_i18n::t!("package-uninstall")
             } else {
-                "Remove all".to_string()
+                smudgy_i18n::t!("package-remove-all")
             };
             let mut buttons = row![
                 text(if !breaks.is_empty() {
-                    "Remove these together?"
+                    smudgy_i18n::ts!("package-remove-together-question")
                 } else if survives {
-                    "Remove the standalone install?"
+                    smudgy_i18n::ts!("package-remove-standalone-question")
                 } else if orphans.is_empty() {
-                    "Uninstall (clears params + secrets)?"
+                    smudgy_i18n::ts!("package-uninstall-question")
                 } else {
-                    "Remove these together?"
+                    smudgy_i18n::ts!("package-remove-together-question")
                 })
                 .size(12.0),
                 iced::widget::space::horizontal(),
-                button(text("Cancel").size(12.0))
+                button(text(smudgy_i18n::t!("action-cancel")).size(12.0))
                     .style(button_style::secondary)
                     .on_press(Message::CancelUninstall),
             ]
@@ -4404,7 +4508,7 @@ impl AutomationsWindow {
             // "Keep them" applies only to the offered orphans; the forced breaks always go.
             if !orphans.is_empty() && !survives {
                 buttons = buttons.push(
-                    button(text("Keep them").size(12.0))
+                    button(text(smudgy_i18n::t!("package-keep-orphans")).size(12.0))
                         .style(button_style::secondary)
                         .on_press(Message::UninstallKeepOrphans),
                 );
@@ -4421,9 +4525,9 @@ impl AutomationsWindow {
                     iced::widget::space::horizontal(),
                     button(
                         text(if survives {
-                            "Remove standalone install…".to_string()
+                            smudgy_i18n::t!("package-remove-standalone-ellipsis")
                         } else {
-                            format!("Uninstall {name}…")
+                            smudgy_i18n::t!("package-uninstall-name", "name" => name)
                         })
                         .size(12.0)
                     )
@@ -4449,9 +4553,9 @@ impl AutomationsWindow {
         name: &str,
     ) -> Elem<'_> {
         let kind_label = match kind {
-            AutomationKind::Alias => "alias",
-            AutomationKind::Trigger => "trigger",
-            AutomationKind::Hotkey => "hotkey",
+            AutomationKind::Alias => smudgy_i18n::ts!("package-kind-alias"),
+            AutomationKind::Trigger => smudgy_i18n::ts!("package-kind-trigger"),
+            AutomationKind::Hotkey => smudgy_i18n::ts!("package-kind-hotkey"),
         };
         let entry = self.creator_automations(creator_id).and_then(|creator| {
             match kind {
@@ -4462,7 +4566,7 @@ impl AutomationsWindow {
         });
         let Some(entry) = entry else {
             return pane_scroll(column![
-                text(format!("{name} is no longer available.")).size(13.0).style(common::muted)
+                text(smudgy_i18n::t!("package-automation-unavailable", "name" => name)).size(13.0).style(common::muted)
             ]);
         };
 
@@ -4473,34 +4577,45 @@ impl AutomationsWindow {
         };
         let creator_label = creator_id
             .strip_prefix("module:")
-            .map(|subpath| format!("module {subpath}"))
+            .map(|subpath| smudgy_i18n::t!("package-creator-module", "name" => subpath))
             .or_else(|| {
                 creator_id
                     .strip_prefix("package:")
-                    .map(|spec| format!("package {}", package_display_name(spec)))
+                    .map(|spec| smudgy_i18n::t!(
+                        "package-creator-package",
+                        "name" => package_display_name(spec)
+                    ))
             })
             .unwrap_or_else(|| creator_id.to_string());
 
         let mut body = column![self.scene_header(
             Some(status),
             name,
-            Some(format!("Read-only {kind_label} · created by {creator_label}")),
-            Some(common::badge(if entry.enabled { "Enabled" } else { "Disabled" })),
+            Some(smudgy_i18n::t!(
+                "package-readonly-created-by",
+                "kind" => kind_label,
+                "creator" => &creator_label
+            )),
+            Some(common::badge(if entry.enabled {
+                smudgy_i18n::t!("package-enabled")
+            } else {
+                smudgy_i18n::t!("package-state-disabled")
+            })),
         )]
         .spacing(16.0);
 
         body = body.push(
-            text(
-                "Created and managed by its package or module — it can't be edited or toggled \
-                 here.",
-            )
+            text(smudgy_i18n::t!("package-created-managed"))
             .size(13.0)
             .style(common::muted),
         );
 
         if let Some(jump) = Self::creator_jump(creator_id) {
             body = body.push(
-                button(text(format!("Open {creator_label}")).size(12.0))
+                button(text(smudgy_i18n::t!(
+                    "package-open-creator",
+                    "creator" => &creator_label
+                )).size(12.0))
                     .style(button_style::secondary)
                     .on_press(jump),
             );
@@ -4508,9 +4623,9 @@ impl AutomationsWindow {
 
         body = body.push(
             column![
-                common::section_label("Pattern"),
+                common::section_label(smudgy_i18n::ts!("package-pattern")),
                 code_block(if entry.pattern.is_empty() {
-                    "(none)"
+                    smudgy_i18n::ts!("package-none-parenthetical")
                 } else {
                     &entry.pattern
                 }),
@@ -4519,12 +4634,18 @@ impl AutomationsWindow {
         );
 
         let (body_label, body_text): (&str, String) = match &entry.body {
-            AutomationBody::Command(cmd) => ("Sends", cmd.to_string()),
-            AutomationBody::Script(Some(src)) => ("Script", src.to_string()),
+            AutomationBody::Command(cmd) => (smudgy_i18n::ts!("package-body-sends"), cmd.to_string()),
+            AutomationBody::Script(Some(src)) => (smudgy_i18n::ts!("package-body-script"), src.to_string()),
             AutomationBody::Script(None) => {
-                ("Script", "(JavaScript handler — source not available)".to_string())
+                (
+                    smudgy_i18n::ts!("package-body-script"),
+                    smudgy_i18n::t!("package-body-script-unavailable"),
+                )
             }
-            AutomationBody::Noop => ("Does", "(nothing)".to_string()),
+            AutomationBody::Noop => (
+                smudgy_i18n::ts!("package-body-does"),
+                smudgy_i18n::t!("package-body-nothing"),
+            ),
         };
         body = body.push(
             column![common::section_label(body_label), code_block(&body_text)].spacing(6.0),
@@ -4537,10 +4658,14 @@ impl AutomationsWindow {
 
     pub(super) fn view_owned_package(&self) -> Elem<'_> {
         let Some(package) = self.local_package.as_deref() else {
-            return pane_scroll(column![text("No package selected.").size(13.0)]);
+            return pane_scroll(column![text(smudgy_i18n::t!("package-no-selection")).size(13.0)]);
         };
         let manifest = &package.manifest;
-        let visibility = if self.share_is_public { "Public" } else { "Private" };
+        let visibility = if self.share_is_public {
+            smudgy_i18n::ts!("package-public")
+        } else {
+            smudgy_i18n::ts!("package-private")
+        };
         // Display the *draft* manifest the form is editing (falling back to the on-disk one), so the
         // header/meta/publish-verdict never contradict the editor below while there are unsaved edits.
         let draft = self.manifest_draft.as_ref();
@@ -4556,7 +4681,7 @@ impl AutomationsWindow {
         let mut body = column![self.scene_header(
             None,
             &package.name,
-            Some(format!("You own this package · v{disp_version}")),
+            Some(smudgy_i18n::t!("package-owned-subtitle", "version" => &disp_version)),
             Some(common::badge(visibility)),
         )]
         .spacing(16.0);
@@ -4575,14 +4700,14 @@ impl AutomationsWindow {
         if let Some(buffer) = &self.rename_buffer {
             body = body.push(
                 row![
-                    text_input("new name", buffer)
+                    text_input(smudgy_i18n::ts!("package-new-name-placeholder"), buffer)
                         .on_input(Message::RenameOwnedChanged)
                         .on_submit(Message::CommitRenameOwned)
                         .width(Length::Fixed(220.0)),
-                    button(text("Save name").size(12.0))
+                    button(text(smudgy_i18n::t!("package-save-name")).size(12.0))
                         .style(button_style::primary)
                         .on_press(Message::CommitRenameOwned),
-                    button(text("Cancel").size(12.0))
+                    button(text(smudgy_i18n::t!("action-cancel")).size(12.0))
                         .style(button_style::secondary)
                         .on_press(Message::CancelRenameOwned),
                 ]
@@ -4591,7 +4716,7 @@ impl AutomationsWindow {
             );
         } else {
             body = body.push(
-                button(text("Rename").size(12.0))
+                button(text(smudgy_i18n::t!("package-rename")).size(12.0))
                     .style(button_style::subtle)
                     .on_press(Message::StartRenameOwned),
             );
@@ -4602,7 +4727,7 @@ impl AutomationsWindow {
         // even if it's currently only pulled in as a dependency.
         body = body.push(
             row![
-                text("Enabled").size(13.0),
+                text(smudgy_i18n::t!("package-enabled")).size(13.0),
                 iced::widget::space::horizontal(),
                 common::pill_switch(
                     self.local_active(&package.name),
@@ -4615,11 +4740,11 @@ impl AutomationsWindow {
 
         // Meta.
         let mut meta = row![].spacing(20.0).align_y(Vertical::Center);
-        meta = meta.push(metric("Latest", &format!("v{disp_version}")));
+        meta = meta.push(metric(smudgy_i18n::ts!("package-metric-latest"), &format!("v{disp_version}")));
         let live_count = self.share_versions.iter().filter(|v| !v.deleted).count();
-        meta = meta.push(metric("Versions", &live_count.to_string()));
+        meta = meta.push(metric(smudgy_i18n::ts!("package-metric-versions"), &live_count.to_string()));
         if disp_dep_count > 0 {
-            meta = meta.push(metric("Dependencies", &disp_dep_count.to_string()));
+            meta = meta.push(metric(smudgy_i18n::ts!("package-dependencies"), &disp_dep_count.to_string()));
         }
         body = body.push(meta);
 
@@ -4659,7 +4784,7 @@ impl AutomationsWindow {
                         text(crate::assets::bootstrap_icons::CLOUD_UPLOAD)
                             .font(fonts::BOOTSTRAP_ICONS)
                             .size(13.0),
-                        text("Publish").size(13.0),
+                        text(smudgy_i18n::t!("package-publish")).size(13.0),
                     ]
                     .spacing(6.0)
                     .align_y(Vertical::Center)
@@ -4673,7 +4798,7 @@ impl AutomationsWindow {
         // publishing them requires saving them first.
         if self.manifest_dirty {
             body = body.push(
-                text("Save your manifest changes before publishing.")
+                text(smudgy_i18n::t!("package-save-before-publish"))
                     .size(12.0)
                     .style(common::warning),
             );
@@ -4684,8 +4809,9 @@ impl AutomationsWindow {
                 }
                 PublishVerdict::AlreadyUsed => {
                     body = body.push(
-                        text(format!(
-                            "v{disp_version} is already published. Version numbers can’t be reused."
+                        text(smudgy_i18n::t!(
+                            "package-version-already-used",
+                            "version" => &disp_version
                         ))
                         .size(12.0)
                         .style(common::warning),
@@ -4698,9 +4824,9 @@ impl AutomationsWindow {
         // Published versions.
         let mut versions = Column::new()
             .spacing(4.0)
-            .push(common::section_label("Published versions"));
+            .push(common::section_label(smudgy_i18n::ts!("package-published-versions")));
         if self.share_versions.is_empty() {
-            versions = versions.push(text("No published versions yet.").size(12.0).style(common::muted));
+            versions = versions.push(text(smudgy_i18n::t!("package-no-published-versions")).size(12.0).style(common::muted));
         }
         // "latest" is the highest live (non-yanked, non-deleted) version. The list now
         // also carries hard-deleted numbers (reserved forever) which render greyed.
@@ -4715,7 +4841,7 @@ impl AutomationsWindow {
                 versions = versions.push(
                     row![
                         text(format!("v{}", v.version)).size(13.0).style(common::faint),
-                        text("deleted").size(11.0).style(common::faint),
+                        text(smudgy_i18n::t!("package-version-deleted")).size(11.0).style(common::faint),
                     ]
                     .spacing(8.0)
                     .align_y(Vertical::Center),
@@ -4726,15 +4852,19 @@ impl AutomationsWindow {
                 .spacing(8.0)
                 .align_y(Vertical::Center);
             if Some(i) == latest_idx {
-                left = left.push(common::badge("latest"));
+                left = left.push(common::badge(smudgy_i18n::t!("package-version-latest")));
             }
             if v.yanked {
-                left = left.push(text("yanked").size(11.0).style(common::faint));
+                left = left.push(text(smudgy_i18n::t!("package-version-yanked")).size(11.0).style(common::faint));
             }
             let mut actions = row![
                 left,
                 iced::widget::space::horizontal(),
-                button(text(if v.yanked { "Unyank" } else { "Yank" }).size(11.0))
+                button(text(if v.yanked {
+                    smudgy_i18n::t!("package-version-unyank")
+                } else {
+                    smudgy_i18n::t!("package-version-yank")
+                }).size(11.0))
                     .style(button_style::secondary)
                     .on_press(Message::YankVersion {
                         version: v.version.clone(),
@@ -4746,7 +4876,7 @@ impl AutomationsWindow {
             // Delete is the heavy, deliberate step — only offered once a version is yanked.
             if v.yanked {
                 actions = actions.push(
-                    button(text("Delete").size(11.0).style(common::danger))
+                    button(text(smudgy_i18n::t!("action-delete")).size(11.0).style(common::danger))
                         .style(button_style::secondary)
                         .on_press(Message::DeleteVersion(v.version.clone())),
                 );
@@ -4754,7 +4884,7 @@ impl AutomationsWindow {
             versions = versions.push(actions);
         }
         versions = versions.push(
-            text("Yank prevents new installs without forcefully removing it from existing installs.")
+            text(smudgy_i18n::t!("package-yank-help"))
                 .size(11.0)
                 .style(common::faint),
         );
@@ -4767,12 +4897,12 @@ impl AutomationsWindow {
         if self.confirm_delete_local {
             body = body.push(
                 row![
-                    text("Delete this package and all its files?").size(12.0),
+                    text(smudgy_i18n::t!("package-delete-question")).size(12.0),
                     iced::widget::space::horizontal(),
-                    button(text("Cancel").size(12.0))
+                    button(text(smudgy_i18n::t!("action-cancel")).size(12.0))
                         .style(button_style::secondary)
                         .on_press(Message::CancelDeleteOwned),
-                    button(text("Delete").size(12.0))
+                    button(text(smudgy_i18n::t!("action-delete")).size(12.0))
                         .style(button_style::secondary)
                         .on_press(Message::DeleteOwned),
                 ]
@@ -4783,7 +4913,7 @@ impl AutomationsWindow {
             body = body.push(
                 row![
                     iced::widget::space::horizontal(),
-                    button(text("Delete package…").size(12.0))
+                    button(text(smudgy_i18n::t!("package-delete-ellipsis")).size(12.0))
                         .style(button_style::secondary)
                         .on_press(Message::RequestDeleteOwned),
                 ]
@@ -4798,14 +4928,14 @@ impl AutomationsWindow {
         // A platform-aware "reveal the package folder in the OS file manager" affordance, so the
         // author can drag files in, open the folder in an external editor, or use git.
         let reveal_label = if cfg!(target_os = "windows") {
-            "Show in Explorer"
+            smudgy_i18n::ts!("package-show-explorer")
         } else if cfg!(target_os = "macos") {
-            "Show in Finder"
+            smudgy_i18n::ts!("package-show-finder")
         } else {
-            "Open Folder"
+            smudgy_i18n::ts!("package-open-folder")
         };
         let source_header = row![
-            common::section_label("Source"),
+            common::section_label(smudgy_i18n::ts!("package-tab-source")),
             iced::widget::space::horizontal(),
             button(text(reveal_label).size(11.0))
                 .style(button_style::subtle)
@@ -4841,7 +4971,7 @@ impl AutomationsWindow {
                 .height(Length::Fixed(340.0))
                 .into()
             } else {
-                container(text("Select a file to edit.").size(13.0).style(common::muted))
+                container(text(smudgy_i18n::t!("package-select-file-edit")).size(13.0).style(common::muted))
                     .padding(10.0)
                     .into()
             }
@@ -4867,7 +4997,7 @@ impl AutomationsWindow {
                 editor,
                 row![
                     iced::widget::space::horizontal(),
-                    button(text("Save").size(12.0))
+                    button(text(smudgy_i18n::t!("action-save")).size(12.0))
                         .style(button_style::primary)
                         .on_press(Message::SaveOwnedFile),
                 ]
@@ -4895,11 +5025,11 @@ impl AutomationsWindow {
     }
 
     fn owned_sharing_section(&self) -> Elem<'_> {
-        let mut col = Column::new().spacing(10.0).push(common::section_label("Sharing"));
+        let mut col = Column::new().spacing(10.0).push(common::section_label(smudgy_i18n::ts!("package-sharing")));
         if self.share_package_id.is_none() {
             return col
                 .push(
-                    text("Publish this package first, then share it from here.")
+                    text(smudgy_i18n::t!("package-publish-before-sharing"))
                         .size(12.0)
                         .style(common::muted),
                 )
@@ -4910,12 +5040,16 @@ impl AutomationsWindow {
             container(
                 row![
                     column![
-                        text(if self.share_is_public { "Public" } else { "Private" })
+                        text(if self.share_is_public {
+                            smudgy_i18n::t!("package-public")
+                        } else {
+                            smudgy_i18n::t!("package-private")
+                        })
                             .size(13.0),
                         text(if self.share_is_public {
-                            "Anyone can discover and install it."
+                            smudgy_i18n::ts!("package-public-help")
                         } else {
-                            "Only friends you share it with can install it."
+                            smudgy_i18n::ts!("package-private-help")
                         })
                         .size(11.0)
                         .style(common::muted),
@@ -4924,9 +5058,9 @@ impl AutomationsWindow {
                     iced::widget::space::horizontal(),
                     button(
                         text(if self.share_is_public {
-                            "Make private"
+                            smudgy_i18n::t!("package-make-private")
                         } else {
-                            "Make public"
+                            smudgy_i18n::t!("package-make-public")
                         })
                         .size(12.0)
                     )
@@ -4945,10 +5079,13 @@ impl AutomationsWindow {
         if !self.share_is_public {
             let mut friends = Column::new().spacing(4.0);
             if self.share_friends.is_empty() {
-                friends = friends.push(text("No friends found.").size(12.0).style(common::muted));
+                friends = friends.push(text(smudgy_i18n::t!("package-no-friends")).size(12.0).style(common::muted));
             }
             for friend in &self.share_friends {
-                let handle = friend.nickname.clone().unwrap_or_else(|| "unknown".to_string());
+                let handle = friend
+                    .nickname
+                    .clone()
+                    .unwrap_or_else(|| smudgy_i18n::t!("package-unknown-user"));
                 let shared = self
                     .share_grants
                     .iter()
@@ -4962,7 +5099,11 @@ impl AutomationsWindow {
                         text(handle).size(13.0),
                         iced::widget::space::horizontal(),
                         button(
-                            text(if shared { "\u{2713} Shared" } else { "Share" }).size(12.0)
+                            text(if shared {
+                                smudgy_i18n::t!("package-shared")
+                            } else {
+                                smudgy_i18n::t!("package-share")
+                            }).size(12.0)
                         )
                         .style(button_style::secondary)
                         .on_press(Message::ShareWithFriend(friend.user_id)),
@@ -4979,8 +5120,8 @@ impl AutomationsWindow {
     pub(super) fn view_new_package(&self, name: &str, error: Option<&str>) -> Elem<'_> {
         let mut body = column![self.scene_header(
             None,
-            "New package",
-            Some("Author a shareable smudgy:// package".to_string()),
+            smudgy_i18n::ts!("package-new"),
+            Some(smudgy_i18n::t!("package-new-subtitle")),
             None,
         )]
         .spacing(16.0);
@@ -4989,27 +5130,24 @@ impl AutomationsWindow {
         }
         body = body.push(
             row![
-                container(text("Name").size(13.0).style(common::muted)).width(Length::Fixed(92.0)),
-                text_input("e.g. mySpellTriggers", name).on_input(Message::SetNewPackageName),
+                container(text(smudgy_i18n::t!("package-name")).size(13.0).style(common::muted)).width(Length::Fixed(92.0)),
+                text_input(smudgy_i18n::ts!("package-name-placeholder"), name).on_input(Message::SetNewPackageName),
             ]
             .spacing(12.0)
             .align_y(Vertical::Center),
         );
         body = body.push(
-            text(
-                "A package is sort-of a small program. It can contain aliases, triggers, hotkeys, and scripts that run in the background. \
-                 It can also include modules and assets that other packages can use.",
-            )
+            text(smudgy_i18n::t!("package-new-help"))
             .size(12.0)
             .style(common::muted),
         );
         body = body.push(
             row![
                 iced::widget::space::horizontal(),
-                button(text("Discard").size(13.0))
+                button(text(smudgy_i18n::t!("editor-discard")).size(13.0))
                     .style(button_style::secondary)
                     .on_press(Message::Discard),
-                button(text("Create package").size(13.0))
+                button(text(smudgy_i18n::t!("package-create")).size(13.0))
                     .style(button_style::primary)
                     .on_press(Message::CreatePackage),
             ]
@@ -5024,8 +5162,8 @@ impl AutomationsWindow {
     pub(super) fn view_discover(&self) -> Elem<'_> {
         let mut body = column![self.scene_header(
             None,
-            "Discover packages",
-            Some("Browse and install public packages".to_string()),
+            smudgy_i18n::ts!("package-discover"),
+            Some(smudgy_i18n::t!("package-discover-subtitle")),
             None,
         )]
         .spacing(16.0);
@@ -5037,10 +5175,10 @@ impl AutomationsWindow {
 
         body = body.push(
             row![
-                text_input("Search packages…", &self.discover_query)
+                text_input(smudgy_i18n::ts!("package-search-placeholder"), &self.discover_query)
                     .on_input(Message::DiscoverQueryChanged)
                     .on_submit(Message::DiscoverSearch),
-                button(text("Search").size(13.0))
+                button(text(smudgy_i18n::t!("package-search")).size(13.0))
                     .style(button_style::primary)
                     .on_press(Message::DiscoverSearch),
             ]
@@ -5050,26 +5188,26 @@ impl AutomationsWindow {
         // Host-aware scope radios. "For <host> only" is shown only when this profile has a MUD host;
         // changing any radio re-runs the search (handled in `update`).
         let mut scope = row![
-            text("Scope").size(13.0).style(common::muted),
-            radio("Relevant", DiscoverScope::Relevant, Some(self.discover_scope), Message::DiscoverScopeChanged),
+            text(smudgy_i18n::t!("package-scope")).size(13.0).style(common::muted),
+            radio(smudgy_i18n::t!("package-scope-relevant"), DiscoverScope::Relevant, Some(self.discover_scope), Message::DiscoverScopeChanged),
         ]
         .spacing(16.0)
         .align_y(Vertical::Center);
         if let Some(host) = &self.mud_host {
             scope = scope.push(radio(
-                format!("For {host} only"),
+                smudgy_i18n::t!("package-scope-host", "host" => host),
                 DiscoverScope::HostOnly,
                 Some(self.discover_scope),
                 Message::DiscoverScopeChanged,
             ));
         }
         scope = scope
-            .push(radio("Universal packages only", DiscoverScope::Universal, Some(self.discover_scope), Message::DiscoverScopeChanged))
-            .push(radio("All packages", DiscoverScope::All, Some(self.discover_scope), Message::DiscoverScopeChanged));
+            .push(radio(smudgy_i18n::t!("package-scope-universal"), DiscoverScope::Universal, Some(self.discover_scope), Message::DiscoverScopeChanged))
+            .push(radio(smudgy_i18n::t!("package-scope-all"), DiscoverScope::All, Some(self.discover_scope), Message::DiscoverScopeChanged));
         body = body.push(scope);
 
         if self.discover_busy {
-            body = body.push(text("Working…").size(13.0).style(common::muted));
+            body = body.push(text(smudgy_i18n::t!("package-working")).size(13.0).style(common::muted));
         }
         if let Some(error) = &self.discover_error {
             body = body.push(text(error.clone()).size(13.0).style(common::danger));
@@ -5086,7 +5224,7 @@ impl AutomationsWindow {
             }
             if self.discover_results.is_empty() && !self.discover_busy {
                 body = body.push(
-                    text("No results yet — enter a search and press Search.")
+                    text(smudgy_i18n::t!("package-no-results"))
                         .size(13.0)
                         .style(common::muted),
                 );
@@ -5102,7 +5240,7 @@ impl AutomationsWindow {
             &result.name,
         );
         let action: Elem = if installed {
-            button(text("Manage").size(12.0))
+            button(text(smudgy_i18n::t!("package-manage")).size(12.0))
                 .style(button_style::secondary)
                 .on_press(Message::SelectInstalledPackage(specifier_for(
                     &result.owner_nickname,
@@ -5114,13 +5252,13 @@ impl AutomationsWindow {
             // the install straight away (resolve → consent), the same flow as the detail page's
             // own Install button — so the user can install without a detour through the detail.
             row![
-                button(text("View").size(12.0))
+                button(text(smudgy_i18n::t!("package-view")).size(12.0))
                     .style(button_style::secondary)
                     .on_press(Message::DiscoverSelect {
                         package_id: result.package_id,
                         owner: result.owner_nickname.clone(),
                     }),
-                button(text("Install").size(12.0))
+                button(text(smudgy_i18n::t!("package-install")).size(12.0))
                     .style(button_style::primary)
                     .on_press(Message::DiscoverInstallResult {
                         owner: result.owner_nickname.clone(),
@@ -5134,12 +5272,14 @@ impl AutomationsWindow {
         // Meta line as a single text run: the prefix and rating average/count inherit the faint base
         // color, while the ★ span is tinted the "out" color.
         let star_color = crate::prefs::current().palette.output;
-        let mut meta_spans: Vec<iced::widget::text::Span<'_, ()>> = vec![span(format!(
-            "{} · v{} · {} installs · ",
-            result.owner_nickname,
-            result.latest_version.as_deref().unwrap_or("—"),
-            result.install_count,
-        ))];
+        let mut meta_spans: Vec<iced::widget::text::Span<'_, ()>> = vec![span(
+            smudgy_i18n::t!(
+                "package-search-meta",
+                "owner" => &result.owner_nickname,
+                "version" => result.latest_version.as_deref().unwrap_or("—"),
+                "count" => result.install_count
+            ),
+        )];
         meta_spans.extend(rating_spans(result.avg_rating, result.rating_count, star_color));
         let meta_line: Elem = rich_text(meta_spans).size(11.0).style(common::faint).into();
         container(
@@ -5147,7 +5287,7 @@ impl AutomationsWindow {
                 column![
                     row![
                         text(result.name.clone()).size(15.0),
-                        if installed { common::badge("Installed") } else { iced::widget::space::horizontal().width(Length::Shrink).into() },
+                        if installed { common::badge(smudgy_i18n::t!("package-installed")) } else { iced::widget::space::horizontal().width(Length::Shrink).into() },
                     ]
                     .spacing(8.0)
                     .align_y(Vertical::Center),
@@ -5169,12 +5309,15 @@ impl AutomationsWindow {
 
     fn view_discover_detail(&self, detail: &PackageDetail) -> Elem<'_> {
         let pkg = &detail.package;
-        let owner = pkg.owner_nickname.clone().unwrap_or_else(|| "you".to_string());
+        let owner = pkg
+            .owner_nickname
+            .clone()
+            .unwrap_or_else(|| smudgy_i18n::t!("package-you"));
         let installed = super::model::is_installed(&self.installed_packages, &owner, &pkg.name);
         let action: Elem = if installed {
-            button(text("Installed").size(12.0)).style(button_style::secondary).into()
+            button(text(smudgy_i18n::t!("package-installed")).size(12.0)).style(button_style::secondary).into()
         } else {
-            button(text("Install").size(12.0))
+            button(text(smudgy_i18n::t!("package-install")).size(12.0))
                 .style(button_style::primary)
                 .on_press(Message::DiscoverInstall)
                 .into()
@@ -5182,16 +5325,19 @@ impl AutomationsWindow {
         // The meta line is a single text run: the owner/version/installs prefix and the rating
         // average/count inherit the muted base color, while the ★ span is tinted the "out" color.
         let star_color = crate::prefs::current().palette.output;
-        let mut meta_spans: Vec<iced::widget::text::Span<'_, ()>> = vec![span(format!(
-            "{owner} · v{} · {} installs · ",
-            detail.latest_version.as_deref().unwrap_or("—"),
-            detail.install_count,
-        ))];
+        let mut meta_spans: Vec<iced::widget::text::Span<'_, ()>> = vec![span(
+            smudgy_i18n::t!(
+                "package-search-meta",
+                "owner" => &owner,
+                "version" => detail.latest_version.as_deref().unwrap_or("—"),
+                "count" => detail.install_count
+            ),
+        )];
         meta_spans.extend(rating_spans(detail.avg_rating, detail.rating_count, star_color));
         let meta_line: Elem = rich_text(meta_spans).size(12.0).style(common::muted).into();
         let mut col = column![
             row![
-                button(text("\u{2039} Back").size(12.0))
+                button(text(smudgy_i18n::t!("package-back")).size(12.0))
                     .style(button_style::secondary)
                     .on_press(Message::DiscoverBack),
                 iced::widget::space::horizontal(),
@@ -5223,14 +5369,14 @@ impl AutomationsWindow {
         }
 
         // Comments. Existing comments read for everyone; posting a new one needs an account.
-        col = col.push(common::section_label("Comments"));
+        col = col.push(common::section_label(smudgy_i18n::ts!("package-comments")));
         if self.signed_in() {
             col = col.push(
                 row![
-                    text_input("Add a comment…", &self.discover_comment_input)
+                    text_input(smudgy_i18n::ts!("package-comment-placeholder"), &self.discover_comment_input)
                         .on_input(Message::CommentInputChanged)
                         .on_submit(Message::AddComment),
-                    button(text("Post").size(12.0))
+                    button(text(smudgy_i18n::t!("package-post")).size(12.0))
                         .style(button_style::secondary)
                         .on_press(Message::AddComment),
                 ]
@@ -5239,10 +5385,13 @@ impl AutomationsWindow {
             );
         }
         if self.discover_comments.is_empty() {
-            col = col.push(text("No comments yet.").size(12.0).style(common::muted));
+            col = col.push(text(smudgy_i18n::t!("package-no-comments")).size(12.0).style(common::muted));
         }
         for comment in &self.discover_comments {
-            let who = comment.user_nickname.clone().unwrap_or_else(|| "someone".to_string());
+            let who = comment
+                .user_nickname
+                .clone()
+                .unwrap_or_else(|| smudgy_i18n::t!("package-someone"));
             col = col.push(
                 column![
                     text(who).size(12.0).style(common::accent),
@@ -5258,16 +5407,26 @@ impl AutomationsWindow {
     fn view_param_prompt<'a>(&self, prompt: &'a ParamPrompt) -> Elem<'a> {
         let mut form = Column::new()
             .spacing(8.0)
-            .push(text(format!("Configure {} v{}", prompt.name, prompt.version)).size(14.0))
+            .push(text(smudgy_i18n::t!(
+                "package-configure",
+                "name" => &prompt.name,
+                "version" => &prompt.version
+            )).size(14.0))
             .push(
-                text("Required settings (the package won't load until these are filled):")
+                text(smudgy_i18n::t!("package-required-settings-help"))
                     .size(12.0)
                     .style(common::muted),
             );
         for param in &prompt.params {
             let state = prompt.values.get(&param.key);
             let field = if is_secret_string(param) {
-                secret_field_row(param, state, ParamTarget::Prompt, "secret value", None)
+                secret_field_row(
+                    param,
+                    state,
+                    ParamTarget::Prompt,
+                    smudgy_i18n::ts!("package-secret-placeholder"),
+                    None,
+                )
             } else if let Some(state) = state {
                 param_values::view(param, state, ParamTarget::Prompt)
             } else {
@@ -5281,10 +5440,10 @@ impl AutomationsWindow {
         form = form.push(
             row![
                 iced::widget::space::horizontal(),
-                button(text("Cancel").size(12.0))
+                button(text(smudgy_i18n::t!("action-cancel")).size(12.0))
                     .style(button_style::secondary)
                     .on_press(Message::ParamPromptCancel),
-                button(text("Save").size(12.0))
+                button(text(smudgy_i18n::t!("action-save")).size(12.0))
                     .style(button_style::primary)
                     .on_press(Message::ParamPromptSubmit),
             ]
@@ -5303,7 +5462,7 @@ impl AutomationsWindow {
         let config = self.param_config.as_ref().filter(|c| c.specifier == specifier)?;
 
         let mut form = Column::new().spacing(10.0).push(
-            text("Values this package reads at runtime. Required ones must be set for it to load.")
+            text(smudgy_i18n::t!("package-runtime-settings-help"))
                 .size(12.0)
                 .style(common::muted),
         );
@@ -5312,7 +5471,11 @@ impl AutomationsWindow {
             let state = config.values.get(&param.key);
             let field = if is_secret_string(param) {
                 let stored = config.secret_stored.contains(&param.key);
-                let placeholder = if stored { "set — leave blank to keep" } else { "secret value" };
+                let placeholder = if stored {
+                    smudgy_i18n::ts!("package-secret-stored-placeholder")
+                } else {
+                    smudgy_i18n::ts!("package-secret-placeholder")
+                };
                 // A stored secret can only be replaced through the box (never revealed), so offer an
                 // explicit Clear — the one way to unset it.
                 let clear = stored.then(|| Message::ParamConfigClearSecret(param.key.clone()));
@@ -5328,13 +5491,13 @@ impl AutomationsWindow {
         if let Some(error) = &config.error {
             form = form.push(text(error.clone()).size(12.0).style(common::danger));
         } else if config.saved {
-            form = form.push(text("Saved.").size(12.0).style(common::accent));
+            form = form.push(text(smudgy_i18n::t!("package-saved")).size(12.0).style(common::accent));
         }
 
         form = form.push(
             row![
                 iced::widget::space::horizontal(),
-                button(text("Save settings").size(12.0))
+                button(text(smudgy_i18n::t!("package-save-settings")).size(12.0))
                     .style(button_style::primary)
                     .on_press(Message::ParamConfigSave),
             ]
@@ -5343,7 +5506,7 @@ impl AutomationsWindow {
 
         Some(
             column![
-                common::section_label("Settings"),
+                common::section_label(smudgy_i18n::ts!("package-settings")),
                 container(form).padding(16.0).width(Length::Fill).style(common::card_style),
             ]
             .spacing(8.0)
@@ -5356,9 +5519,13 @@ impl AutomationsWindow {
     fn view_consent_prompt<'a>(&self, prompt: &'a ConsentPrompt) -> Elem<'a> {
         let mut form = Column::new()
             .spacing(12.0)
-            .push(text(format!("Install {} v{}", prompt.name, prompt.version)).size(16.0))
+            .push(text(smudgy_i18n::t!(
+                "package-install-title",
+                "name" => &prompt.name,
+                "version" => &prompt.version
+            )).size(16.0))
             .push(
-                text(format!("Publisher: {}", prompt.owner))
+                text(smudgy_i18n::t!("package-publisher", "publisher" => &prompt.owner))
                     .size(12.0)
                     .style(common::muted),
             );
@@ -5372,7 +5539,7 @@ impl AutomationsWindow {
             form = form.push(text(sandbox_summary()).size(13.0));
             let mut cannot = Column::new()
                 .spacing(4.0)
-                .push(text("It also can't:").size(13.0));
+                .push(text(smudgy_i18n::t!("package-cannot-also")).size(13.0));
             for line in smudgy_cannot_lines(&prompt.permissions.smudgy) {
                 cannot = cannot.push(consent_cannot_row(&line));
             }
@@ -5383,7 +5550,7 @@ impl AutomationsWindow {
         } else {
             let mut can_col = Column::new()
                 .spacing(4.0)
-                .push(text("This package will be able to:").size(13.0));
+                .push(text(smudgy_i18n::t!("package-will-be-able")).size(13.0));
             for line in &can {
                 can_col = can_col.push(consent_can_row(line));
             }
@@ -5392,7 +5559,7 @@ impl AutomationsWindow {
             // What it will NOT be able to do (the sandbox guarantee made legible).
             let mut cannot = Column::new()
                 .spacing(4.0)
-                .push(text("It will NOT be able to:").size(13.0));
+                .push(text(smudgy_i18n::t!("package-will-not-be-able")).size(13.0));
             for line in permission_cannot_lines(&prompt.permissions) {
                 cannot = cannot.push(consent_cannot_row(&line));
             }
@@ -5409,7 +5576,7 @@ impl AutomationsWindow {
         if !prompt.cycle_warnings.is_empty() {
             let mut warnings = Column::new()
                 .spacing(4.0)
-                .push(text("Note:").size(13.0).style(common::muted));
+                .push(text(smudgy_i18n::t!("package-note")).size(13.0).style(common::muted));
             for line in &prompt.cycle_warnings {
                 warnings = warnings.push(
                     row![
@@ -5431,7 +5598,7 @@ impl AutomationsWindow {
                     column![
                         row![
                             text("\u{26A0}").size(14.0).style(common::danger),
-                            text("Can't install \u{2014} required-package version conflict").size(14.0),
+                            text(smudgy_i18n::t!("package-install-conflict")).size(14.0),
                         ]
                         .spacing(8.0)
                         .align_y(Vertical::Center),
@@ -5454,11 +5621,11 @@ impl AutomationsWindow {
                     column![
                         row![
                             text("\u{26A0}").size(14.0).style(common::danger),
-                            text("Can't install \u{2014} needs a newer smudgy").size(14.0),
+                            text(smudgy_i18n::t!("package-install-newer-smudgy")).size(14.0),
                         ]
                         .spacing(8.0)
                         .align_y(Vertical::Center),
-                        text(format!("{message}.")).size(12.0),
+                        text(smudgy_i18n::t!("package-message-period", "message" => message)).size(12.0),
                     ]
                     .spacing(6.0),
                 )
@@ -5478,13 +5645,13 @@ impl AutomationsWindow {
         form = form.push(
             row![
                 iced::widget::space::horizontal(),
-                button(text("Cancel").size(12.0))
+                button(text(smudgy_i18n::t!("action-cancel")).size(12.0))
                     .style(button_style::secondary)
                     .on_press(Message::ConsentCancel),
-                button(text("Install, don't enable").size(12.0))
+                button(text(smudgy_i18n::t!("package-install-disabled")).size(12.0))
                     .style(button_style::secondary)
                     .on_press_maybe(can_install.then_some(Message::ConsentGrant { enable: false })),
-                button(text("Install & enable").size(12.0))
+                button(text(smudgy_i18n::t!("package-install-enabled")).size(12.0))
                     .style(button_style::primary)
                     .on_press_maybe(can_install.then_some(Message::ConsentGrant { enable: true })),
             ]
@@ -5509,13 +5676,17 @@ impl AutomationsWindow {
         }
         let mut col = Column::new()
             .spacing(8.0)
-            .push(text("This also installs:").size(13.0));
+            .push(text(smudgy_i18n::t!("package-also-installs")).size(13.0));
         for root in roots {
             if root.already_satisfied {
                 col = col.push(
                     row![
                         text("\u{2022}").size(13.0).style(common::muted),
-                        text(format!("{} v{} \u{2014} already installed", root.name, root.version))
+                        text(smudgy_i18n::t!(
+                            "package-already-installed-version",
+                            "name" => &root.name,
+                            "version" => &root.version
+                        ))
                             .size(12.0)
                             .style(common::muted),
                     ]
@@ -5525,9 +5696,17 @@ impl AutomationsWindow {
                 continue;
             }
             let heading = if root.is_upgrade {
-                format!("{} \u{2192} v{} (upgrade)", root.name, root.version)
+                smudgy_i18n::t!(
+                    "package-upgrade-version",
+                    "name" => &root.name,
+                    "version" => &root.version
+                )
             } else {
-                format!("{} v{}", root.name, root.version)
+                smudgy_i18n::t!(
+                    "package-name-version",
+                    "name" => &root.name,
+                    "version" => &root.version
+                )
             };
             let mut entry = Column::new()
                 .spacing(4.0)
@@ -5566,7 +5745,7 @@ impl AutomationsWindow {
 
         let mut col = Column::new()
             .spacing(8.0)
-            .push(common::section_label("Sandbox"));
+            .push(common::section_label(smudgy_i18n::ts!("package-sandbox")));
 
         if unsandboxed {
             col = col.push(
@@ -5574,14 +5753,11 @@ impl AutomationsWindow {
                     column![
                         row![
                             text("\u{26A0}").size(14.0).style(common::danger),
-                            text("Developing unsandboxed \u{2014} full access").size(14.0),
+                            text(smudgy_i18n::t!("package-developing-unsandboxed")).size(14.0),
                         ]
                         .spacing(8.0)
                         .align_y(Vertical::Center),
-                        text(
-                            "Runs on your main isolate with full access to your computer, as if you \
-                             wrote it. Return it to the manifest sandbox to test what installers get."
-                        )
+                        text(smudgy_i18n::t!("package-unsandboxed-owned-help"))
                         .size(12.0)
                         .style(common::muted),
                     ]
@@ -5595,7 +5771,7 @@ impl AutomationsWindow {
             col = col.push(
                 row![
                     iced::widget::space::horizontal(),
-                    button(text("Use manifest sandbox").size(12.0))
+                    button(text(smudgy_i18n::t!("package-use-manifest-sandbox")).size(12.0))
                         .style(button_style::secondary)
                         .on_press(Message::SetLocalUnsandboxed(false)),
                 ]
@@ -5607,12 +5783,12 @@ impl AutomationsWindow {
         // Sandboxed against the live manifest: show what it currently grants (reusing the consent
         // can-lines), and point at the manifest editor as the grant mechanism.
         let can = permission_can_lines(&package.manifest.permissions);
-        let mut card =
-            column![text("Runs sandboxed against this package\u{2019}s manifest").size(14.0)].spacing(6.0);
+        let mut card = column![text(smudgy_i18n::t!("package-runs-manifest-sandbox")).size(14.0)]
+            .spacing(6.0);
         if can.is_empty() {
             card = card.push(text(sandbox_summary()).size(12.0).style(common::muted));
         } else {
-            card = card.push(text("It can:").size(12.0).style(common::muted));
+            card = card.push(text(smudgy_i18n::t!("package-it-can")).size(12.0).style(common::muted));
             let mut lines = Column::new().spacing(4.0);
             for line in &can {
                 lines = lines.push(consent_can_row(line));
@@ -5621,7 +5797,7 @@ impl AutomationsWindow {
         }
         card = card.push(
             row![
-                button(text("Edit capabilities").size(12.0))
+                button(text(smudgy_i18n::t!("package-edit-capabilities")).size(12.0))
                     .style(button_style::secondary)
                     .on_press(Message::EditOwnedCapabilities),
             ]
@@ -5644,23 +5820,18 @@ impl AutomationsWindow {
                         column![
                             row![
                                 text("\u{26A0}").size(14.0).style(common::danger),
-                                text("Develop this package unsandboxed?").size(14.0),
+                                text(smudgy_i18n::t!("package-develop-unsandboxed-question")).size(14.0),
                             ]
                             .spacing(8.0)
                             .align_y(Vertical::Center),
-                            text(
-                                "It will run with FULL access to your computer, on your main isolate, \
-                                 sharing state with your own scripts — ignoring its manifest's \
-                                 permissions. Use this only for capabilities a sandbox can't grant \
-                                 (e.g. ffi/run) while developing."
-                            )
+                            text(smudgy_i18n::t!("package-develop-unsandboxed-warning"))
                             .size(12.0),
                             row![
                                 iced::widget::space::horizontal(),
-                                button(text("Cancel").size(12.0))
+                                button(text(smudgy_i18n::t!("action-cancel")).size(12.0))
                                     .style(button_style::secondary)
                                     .on_press(Message::CancelTrust),
-                                button(text("Develop unsandboxed").size(12.0))
+                                button(text(smudgy_i18n::t!("package-develop-unsandboxed")).size(12.0))
                                     .style(button_style::primary)
                                     .on_press(Message::SetLocalUnsandboxed(true)),
                             ]
@@ -5677,17 +5848,14 @@ impl AutomationsWindow {
                 col = col.push(
                     row![
                         column![
-                            text("Develop unsandboxed (advanced)").size(13.0),
-                            text(
-                                "Run it on your main isolate with full access (and inspector \
-                                 debugging), ignoring the manifest sandbox."
-                            )
+                            text(smudgy_i18n::t!("package-develop-unsandboxed-advanced")).size(13.0),
+                            text(smudgy_i18n::t!("package-develop-unsandboxed-help"))
                             .size(11.0)
                             .style(common::muted),
                         ]
                         .spacing(2.0),
                         iced::widget::space::horizontal(),
-                        button(text("Develop unsandboxed\u{2026}").size(12.0))
+                        button(text(smudgy_i18n::t!("package-develop-unsandboxed-ellipsis")).size(12.0))
                             .style(button_style::secondary)
                             .on_press(Message::RequestTrust),
                     ]
@@ -5708,18 +5876,17 @@ impl AutomationsWindow {
     fn view_dependency_permissions_section(&self, parent: &str) -> Elem<'_> {
         let parent_name = package_display_name(parent).to_string();
         let card = column![
-            text(format!("Runs inside {parent_name}")).size(14.0),
-            text(format!(
-                "This is a building block of {parent_name}. It runs in {parent_name}\u{2019}s \
-                 sandbox and can only do what {parent_name} is allowed to do \u{2014} it has no \
-                 permissions of its own. To review or change its access, open {parent_name}."
+            text(smudgy_i18n::t!("package-runs-inside", "parent" => &parent_name)).size(14.0),
+            text(smudgy_i18n::t!(
+                "package-dependency-permissions-help",
+                "parent" => &parent_name
             ))
             .size(12.0)
             .style(common::muted),
         ]
         .spacing(6.0);
         column![
-            common::section_label("Permissions"),
+            common::section_label(smudgy_i18n::ts!("manifest-permissions")),
             container(card)
                 .padding(12.0)
                 .width(Length::Fill)
@@ -5732,7 +5899,7 @@ impl AutomationsWindow {
     fn view_permissions_section(&self, locked: &LockedPackage) -> Elem<'_> {
         let mut col = Column::new()
             .spacing(8.0)
-            .push(common::section_label("Permissions"));
+            .push(common::section_label(smudgy_i18n::ts!("manifest-permissions")));
 
         if locked.trusted {
             col = col.push(
@@ -5740,14 +5907,11 @@ impl AutomationsWindow {
                     column![
                         row![
                             text("\u{26A0}").size(14.0).style(common::danger),
-                            text("Full access \u{2014} sandbox removed").size(14.0),
+                            text(smudgy_i18n::t!("package-full-access")).size(14.0),
                         ]
                         .spacing(8.0)
                         .align_y(Vertical::Center),
-                        text(
-                            "Runs on your main isolate with full access to your computer, as if you \
-                             wrote it — sharing state with your own scripts."
-                        )
+                        text(smudgy_i18n::t!("package-full-access-help"))
                         .size(12.0)
                         .style(common::muted),
                     ]
@@ -5762,7 +5926,7 @@ impl AutomationsWindow {
             col = col.push(
                 row![
                     iced::widget::space::horizontal(),
-                    button(text("Restore sandbox").size(12.0))
+                    button(text(smudgy_i18n::t!("package-restore-sandbox")).size(12.0))
                         .style(button_style::secondary)
                         .on_press(Message::SetTrusted(false)),
                 ]
@@ -5775,11 +5939,11 @@ impl AutomationsWindow {
         // (read-only; the union is whatever was granted at install).
         let consented = locked.consented_permissions.clone().unwrap_or_default();
         let can = permission_can_lines(&consented);
-        let mut card = column![text("Runs in sandbox").size(14.0)].spacing(6.0);
+        let mut card = column![text(smudgy_i18n::t!("package-runs-sandbox")).size(14.0)].spacing(6.0);
         if can.is_empty() {
             card = card.push(text(sandbox_summary()).size(12.0).style(common::muted));
         } else {
-            card = card.push(text("It can only:").size(12.0).style(common::muted));
+            card = card.push(text(smudgy_i18n::t!("package-it-can-only")).size(12.0).style(common::muted));
             let mut lines = Column::new().spacing(4.0);
             for line in &can {
                 lines = lines.push(consent_can_row(line));
@@ -5788,10 +5952,7 @@ impl AutomationsWindow {
         }
         if locked.consented_permissions.is_none() {
             card = card.push(
-                text(
-                    "Not yet consented — denied all access until you confirm its permissions \
-                     (reinstall from Discover).",
-                )
+                text(smudgy_i18n::t!("package-not-consented"))
                 .size(11.0)
                 .style(common::faint),
             );
@@ -5813,23 +5974,18 @@ impl AutomationsWindow {
                         column![
                             row![
                                 text("\u{26A0}").size(14.0).style(common::danger),
-                                text("Remove this package's sandbox?").size(14.0),
+                                text(smudgy_i18n::t!("package-remove-sandbox-question")).size(14.0),
                             ]
                             .spacing(8.0)
                             .align_y(Vertical::Center),
-                            text(
-                                "Without its sandbox, this package runs with FULL access to your \
-                                 computer, on your main isolate, sharing state with your own \
-                                 scripts. It can do anything you can. Only remove the sandbox for \
-                                 packages you would have written yourself."
-                            )
+                            text(smudgy_i18n::t!("package-remove-sandbox-warning"))
                             .size(12.0),
                             row![
                                 iced::widget::space::horizontal(),
-                                button(text("Cancel").size(12.0))
+                                button(text(smudgy_i18n::t!("action-cancel")).size(12.0))
                                     .style(button_style::secondary)
                                     .on_press(Message::CancelTrust),
-                                button(text("Remove sandbox").size(12.0))
+                                button(text(smudgy_i18n::t!("package-remove-sandbox")).size(12.0))
                                     .style(button_style::primary)
                                     .on_press(Message::SetTrusted(true)),
                             ]
@@ -5846,16 +6002,14 @@ impl AutomationsWindow {
                 col = col.push(
                     row![
                         column![
-                            text("Remove sandbox (advanced)").size(13.0),
-                            text(
-                                "Run it on your main isolate with full access to your computer. This allows the package to be debugged with the inspector."
-                            )
+                            text(smudgy_i18n::t!("package-remove-sandbox-advanced")).size(13.0),
+                            text(smudgy_i18n::t!("package-remove-sandbox-help"))
                             .size(11.0)
                             .style(common::muted),
                         ]
                         .spacing(2.0),
                         iced::widget::space::horizontal(),
-                        button(text("Remove sandbox\u{2026}").size(12.0))
+                        button(text(smudgy_i18n::t!("package-remove-sandbox-ellipsis")).size(12.0))
                             .style(button_style::secondary)
                             .on_press(Message::RequestTrust),
                     ]
@@ -5880,7 +6034,10 @@ impl AutomationsWindow {
                 .push(
                     row![
                         common::status_dot(NodeStatus::Warning),
-                        text(format!("Update held back — {} needs a newer smudgy", delta.name))
+                        text(smudgy_i18n::t!(
+                            "package-update-held-newer",
+                            "name" => &delta.name
+                        ))
                             .size(14.0),
                     ]
                     .spacing(8.0)
@@ -5891,14 +6048,18 @@ impl AutomationsWindow {
                     // be stale (a floored pin, or a smudgy downgrade since it last loaded),
                     // so the card states only what is certainly true. The reason carries its
                     // own remedy.
-                    text(format!("v{} is held back \u{2014} {reason}.", delta.version))
+                    text(smudgy_i18n::t!(
+                        "package-version-held-reason",
+                        "version" => &delta.version,
+                        "reason" => reason
+                    ))
                         .size(12.0)
                         .style(common::muted),
                 )
                 .push(
                     row![
                         iced::widget::space::horizontal(),
-                        button(text("OK").size(12.0))
+                        button(text(smudgy_i18n::t!("package-ok")).size(12.0))
                             .style(button_style::secondary)
                             .on_press(Message::DismissUpdate),
                     ]
@@ -5916,21 +6077,24 @@ impl AutomationsWindow {
             .push(
                 row![
                     common::status_dot(NodeStatus::Warning),
-                    text(format!("Update blocked — {} needs more permissions", delta.name)).size(14.0),
+                    text(smudgy_i18n::t!(
+                        "package-update-blocked-permissions",
+                        "name" => &delta.name
+                    )).size(14.0),
                 ]
                 .spacing(8.0)
                 .align_y(Vertical::Center),
             )
             .push(
                 text(match &delta.current_version {
-                    Some(current) => format!(
-                        "You're running v{current} (it fits your grant). v{} is held back — to \
-                         update, it additionally needs to:",
-                        delta.version
+                    Some(current) => smudgy_i18n::t!(
+                        "package-update-current-held",
+                        "current" => current,
+                        "next" => &delta.version
                     ),
-                    None => format!(
-                        "v{} is held back — to load it, it additionally needs to:",
-                        delta.version
+                    None => smudgy_i18n::t!(
+                        "package-update-held-load",
+                        "version" => &delta.version
                     ),
                 })
                 .size(12.0)
@@ -5944,10 +6108,10 @@ impl AutomationsWindow {
         col = col.push(
             row![
                 iced::widget::space::horizontal(),
-                button(text("Keep current version").size(12.0))
+                button(text(smudgy_i18n::t!("package-keep-current-version")).size(12.0))
                     .style(button_style::secondary)
                     .on_press(Message::DismissUpdate),
-                button(text("Grant & update").size(12.0))
+                button(text(smudgy_i18n::t!("package-grant-update")).size(12.0))
                     .style(button_style::primary)
                     .on_press(Message::GrantUpdate),
             ]
@@ -5966,18 +6130,15 @@ impl AutomationsWindow {
     pub(super) fn view_shared(&self) -> Elem<'_> {
         let mut body = column![self.scene_header(
             None,
-            "Private & Shared",
-            Some(
-                "Private packages you own and packages friends have shared with you."
-                    .to_string()
-            ),
+            smudgy_i18n::ts!("package-private-shared"),
+            Some(smudgy_i18n::t!("package-private-shared-subtitle")),
             None,
         )]
         .spacing(16.0);
 
         if !self.signed_in() {
             return pane_scroll(
-                body.push(self.signed_out_banner("see the packages you own and ones friends have shared")),
+                body.push(self.signed_out_banner()),
             );
         }
         if let Some(error) = &self.discover_error {
@@ -5991,13 +6152,13 @@ impl AutomationsWindow {
         }
 
         // ---- Your packages (owned in the cloud) ----
-        body = body.push(common::section_label("Your packages"));
+        body = body.push(common::section_label(smudgy_i18n::ts!("package-your-packages")));
         // Your own nickname is the owner handle for installing/resolving these — the server omits
         // owner_nickname on /packages/mine (it's you), so it isn't carried on the rows.
         let my_nick = self.cloud.snapshot.get().nickname_text().unwrap_or_default();
         match &self.my_cloud_packages {
             None => {
-                body = body.push(text("Loading…").size(13.0).style(common::muted));
+                body = body.push(text(smudgy_i18n::t!("package-loading")).size(13.0).style(common::muted));
             }
             Some(list) => {
                 for detail in list {
@@ -6015,11 +6176,11 @@ impl AutomationsWindow {
                         &detail.package.name,
                     );
                     let action: Elem = if is_local {
-                        common::badge("Local")
+                        common::badge(smudgy_i18n::t!("package-local"))
                     } else if installed {
-                        common::badge("Installed")
+                        common::badge(smudgy_i18n::t!("package-installed"))
                     } else {
-                        button(text("Install").size(12.0))
+                        button(text(smudgy_i18n::t!("package-install")).size(12.0))
                             .style(button_style::primary)
                             .on_press(Message::InstallShared {
                                 owner: my_nick.clone(),
@@ -6031,7 +6192,7 @@ impl AutomationsWindow {
                         .spacing(8.0)
                         .align_y(Vertical::Center);
                     if !detail.package.is_public {
-                        title_row = title_row.push(common::badge("Private"));
+                        title_row = title_row.push(common::badge(smudgy_i18n::t!("package-private")));
                     }
                     body = body.push(
                         container(
@@ -6057,7 +6218,7 @@ impl AutomationsWindow {
                 }
                 if list.is_empty() {
                     body = body.push(
-                        text("You don't own any cloud packages yet.")
+                        text(smudgy_i18n::t!("package-no-owned-cloud"))
                             .size(13.0)
                             .style(common::muted),
                     );
@@ -6066,14 +6227,14 @@ impl AutomationsWindow {
         }
 
         // ---- Shared with you (by friends) ----
-        body = body.push(common::section_label("Shared with you"));
+        body = body.push(common::section_label(smudgy_i18n::ts!("package-shared-with-you")));
         match &self.shared_with_me {
             None => {
-                body = body.push(text("Loading…").size(13.0).style(common::muted));
+                body = body.push(text(smudgy_i18n::t!("package-loading")).size(13.0).style(common::muted));
             }
             Some(list) if list.is_empty() => {
                 body = body.push(
-                    text("No packages have been shared with you yet.")
+                    text(smudgy_i18n::t!("package-no-shared"))
                         .size(13.0)
                         .style(common::muted),
                 );
@@ -6084,9 +6245,9 @@ impl AutomationsWindow {
                     let installed =
                         super::model::is_installed(&self.installed_packages, &owner, &detail.package.name);
                     let action: Elem = if installed {
-                        common::badge("Installed")
+                        common::badge(smudgy_i18n::t!("package-installed"))
                     } else {
-                        button(text("Install").size(12.0))
+                        button(text(smudgy_i18n::t!("package-install")).size(12.0))
                             .style(button_style::primary)
                             .on_press(Message::InstallShared {
                                 owner: owner.clone(),
@@ -6100,7 +6261,11 @@ impl AutomationsWindow {
                                 column![
                                     text(detail.package.name.clone()).size(15.0),
                                     text(detail.package.description.clone()).size(12.0).style(common::muted),
-                                    text(format!("{owner} · v{}", detail.latest_version.as_deref().unwrap_or("—")))
+                                    text(smudgy_i18n::t!(
+                                        "package-owner-version",
+                                        "owner" => &owner,
+                                        "version" => detail.latest_version.as_deref().unwrap_or("—")
+                                    ))
                                         .size(11.0)
                                         .style(common::faint),
                                 ]
@@ -6138,7 +6303,7 @@ fn rating_spans<'a>(
             span("\u{2605}").color(star_color),
             span(format!(" {r:.1} ({rating_count})")),
         ],
-        None => vec![span("unrated")],
+        None => vec![span(smudgy_i18n::t!("package-unrated"))],
     }
 }
 
@@ -6147,7 +6312,7 @@ fn rating_spans<'a>(
 /// pane. The star glyphs take the terminal palette's "out" (output) color, matching outgoing text.
 fn star_rate_row<'a>(make_msg: fn(i16) -> Message) -> Elem<'a> {
     let star_color = crate::prefs::current().palette.output;
-    let mut rate = row![text("Rate").size(12.0).style(common::muted)]
+    let mut rate = row![text(smudgy_i18n::t!("package-rate")).size(12.0).style(common::muted)]
         .spacing(6.0)
         .align_y(Vertical::Center);
     for stars in 1..=5_i16 {
@@ -6178,7 +6343,7 @@ fn rating_metric<'a>(avg_rating: Option<f64>, rating_count: i64, star_color: Col
         .size(20.0)
         .font(value_font)
         .into();
-    column![value, text("RATING").size(10.0).style(common::faint)]
+    column![value, text(smudgy_i18n::t!("package-rating").to_uppercase()).size(10.0).style(common::faint)]
         .spacing(2.0)
         .into()
 }

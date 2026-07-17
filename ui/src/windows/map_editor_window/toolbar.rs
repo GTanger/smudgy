@@ -47,28 +47,28 @@ pub fn view(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
     let tools = row![
         tool_button(
             bootstrap_icons::CURSOR,
-            "Select",
+            smudgy_i18n::ts!("mapper-tool-select"),
             Tool::Select,
             active_tool,
             true
         ),
         tool_button(
             bootstrap_icons::PLUS_SQUARE,
-            "Add room",
+            smudgy_i18n::ts!("mapper-tool-add-room"),
             Tool::AddRoom,
             active_tool,
             can_edit
         ),
         tool_button(
             bootstrap_icons::FONTS,
-            "Add label",
+            smudgy_i18n::ts!("mapper-tool-add-label"),
             Tool::AddLabel,
             active_tool,
             can_edit
         ),
         tool_button(
             bootstrap_icons::BOUNDING_BOX,
-            "Add shape",
+            smudgy_i18n::ts!("mapper-tool-add-shape"),
             Tool::AddShape,
             active_tool,
             can_edit
@@ -81,15 +81,15 @@ pub fn view(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
             button(icon(bootstrap_icons::CHEVRON_DOWN))
                 .style(builtins::button::toolbar)
                 .on_press(Message::LevelDown),
-            "Level down",
+            smudgy_i18n::ts!("mapper-level-down"),
             tooltip::Position::Bottom,
         ),
-        text(format!("Level {}", window.editor.level())).size(14),
+        text(smudgy_i18n::t!("mapper-level", "level" => window.editor.level())).size(14),
         tooltip(
             button(icon(bootstrap_icons::CHEVRON_UP))
                 .style(builtins::button::toolbar)
                 .on_press(Message::LevelUp),
-            "Level up",
+            smudgy_i18n::ts!("mapper-level-up"),
             tooltip::Position::Bottom,
         ),
     ]
@@ -103,14 +103,14 @@ pub fn view(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
             button(icon(bootstrap_icons::ARROW_COUNTERCLOCKWISE))
                 .style(builtins::button::toolbar)
                 .on_press_maybe((can_edit && window.can_undo()).then_some(Message::Undo)),
-            "Undo",
+            smudgy_i18n::ts!("mapper-undo"),
             tooltip::Position::Bottom,
         ),
         tooltip(
             button(icon(bootstrap_icons::ARROW_CLOCKWISE))
                 .style(builtins::button::toolbar)
                 .on_press_maybe((can_edit && window.can_redo()).then_some(Message::Redo)),
-            "Redo",
+            smudgy_i18n::ts!("mapper-redo"),
             tooltip::Position::Bottom,
         ),
     ]
@@ -132,7 +132,7 @@ pub fn view(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
             )
             .style(builtins::button::toolbar)
             .on_press(Message::SecretsAuditRequested),
-            "Secrets in this area",
+            smudgy_i18n::ts!("mapper-secrets-title"),
             tooltip::Position::Bottom,
         ));
     }
@@ -141,10 +141,10 @@ pub fn view(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
     if window.can_share_active_area() {
         bar = bar.push(space::horizontal().width(8.0));
         bar = bar.push(tooltip(
-            button(text("Share").size(13))
+            button(text(smudgy_i18n::t!("mapper-share")).size(13))
                 .style(builtins::button::toolbar)
                 .on_press(Message::ShareDialogRequested),
-            "Share this area with friends",
+            smudgy_i18n::ts!("mapper-share-area-tip"),
             tooltip::Position::Bottom,
         ));
     }
@@ -153,10 +153,10 @@ pub fn view(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
     if window.can_copy_active_area() {
         bar = bar.push(space::horizontal().width(8.0));
         bar = bar.push(tooltip(
-            button(text("Copy to my maps").size(13))
+            button(text(smudgy_i18n::t!("mapper-copy-to-my-maps")).size(13))
                 .style(builtins::button::toolbar)
                 .on_press(Message::CopyAreaRequested),
-            "Make your own editable copy of this shared map",
+            smudgy_i18n::ts!("mapper-copy-shared-tip"),
             tooltip::Position::Bottom,
         ));
     }
@@ -166,10 +166,10 @@ pub fn view(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
     if window.area_is_owned() {
         bar = bar.push(space::horizontal().width(8.0));
         bar = bar.push(tooltip(
-            button(text("Duplicate").size(13))
+            button(text(smudgy_i18n::t!("mapper-duplicate")).size(13))
                 .style(builtins::button::toolbar)
                 .on_press(Message::DuplicateAreaRequested),
-            "Make a copy of this map \u{2014} useful for sharing a version with some secrets unmarked",
+            smudgy_i18n::ts!("mapper-duplicate-tip"),
             tooltip::Position::Bottom,
         ));
     }
@@ -178,10 +178,10 @@ pub fn view(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
     if window.area_is_owned() {
         bar = bar.push(space::horizontal().width(8.0));
         bar = bar.push(tooltip(
-            button(text("Transfer\u{2026}").size(13))
+            button(text(smudgy_i18n::t!("mapper-transfer-action")).size(13))
                 .style(builtins::button::toolbar)
                 .on_press(Message::TransferOwnershipRequested),
-            "Give this map to a friend (they become the owner once they accept)",
+            smudgy_i18n::ts!("mapper-transfer-tip"),
             tooltip::Position::Bottom,
         ));
     }
@@ -215,11 +215,11 @@ fn inactive_chip() -> ThemedElement<'static, Message> {
                 .font(fonts::BOOTSTRAP_ICONS)
                 .size(13.0)
                 .style(muted),
-            text("Inactive").size(12).style(muted),
+            text(smudgy_i18n::t!("inspector-inactive")).size(12).style(muted),
         ]
         .spacing(4)
         .align_y(Vertical::Center),
-        "Not used to find your location \u{2014} activate it in the area list",
+        smudgy_i18n::ts!("mapper-inactive-location-tip"),
         tooltip::Position::Bottom,
     )
     .into()
@@ -242,7 +242,7 @@ fn sync_indicator(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
     let (codepoint, label, color): (&str, String, StyleFn) = if busy {
         (
             bootstrap_icons::CLOUD_UPLOAD,
-            format!("syncing {pending}"),
+            smudgy_i18n::t!("mapper-syncing", "count" => pending),
             |theme: &crate::Theme| iced::widget::text::Style {
                 color: Some(theme.styles.text.normal.scale_alpha(0.7)),
             },
@@ -250,7 +250,7 @@ fn sync_indicator(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
     } else if failed > 0 {
         (
             bootstrap_icons::EXCLAMATION_TRIANGLE,
-            format!("{failed} failed"),
+            smudgy_i18n::t!("mapper-sync-failed", "count" => failed),
             |theme: &crate::Theme| iced::widget::text::Style {
                 color: Some(theme.styles.text.error),
             },
@@ -258,7 +258,7 @@ fn sync_indicator(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
     } else {
         (
             bootstrap_icons::CLOUD_CHECK,
-            "Sync".to_string(),
+            smudgy_i18n::t!("mapper-sync"),
             |theme: &crate::Theme| iced::widget::text::Style {
                 color: Some(theme.styles.text.normal.scale_alpha(0.4)),
             },
@@ -285,7 +285,7 @@ fn sync_indicator(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
                 .style(builtins::button::subtle)
                 .padding([2, 6])
                 .on_press(Message::SyncNowRequested),
-            "Sync with the cloud now",
+            smudgy_i18n::ts!("mapper-sync-tip"),
             tooltip::Position::Bottom,
         )
         .into()

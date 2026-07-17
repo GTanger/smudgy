@@ -677,7 +677,7 @@ pub fn draw_connection(
                 y: text_anchor.y + (text_anchor.y - end.y),
             };
             frame.fill_text(canvas::Text {
-                content: "Unknown map".to_string(),
+                content: smudgy_i18n::t!("map-unknown"),
                 position: label_anchor,
                 align_x,
                 align_y,

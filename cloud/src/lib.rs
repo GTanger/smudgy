@@ -88,7 +88,7 @@ pub(crate) fn versioned_http_client() -> reqwest::Client {
 }
 
 /// Exit direction enum matching the backend
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ExitDirection {
     North,
     East,
@@ -105,6 +105,28 @@ pub enum ExitDirection {
     Special,
     #[default]
     Other,
+}
+
+impl std::fmt::Display for ExitDirection {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let key = match self {
+            Self::North => "direction-north",
+            Self::East => "direction-east",
+            Self::South => "direction-south",
+            Self::West => "direction-west",
+            Self::Up => "direction-up",
+            Self::Down => "direction-down",
+            Self::Northeast => "direction-northeast",
+            Self::Northwest => "direction-northwest",
+            Self::Southeast => "direction-southeast",
+            Self::Southwest => "direction-southwest",
+            Self::In => "direction-in",
+            Self::Out => "direction-out",
+            Self::Special => "direction-special",
+            Self::Other => "direction-other",
+        };
+        formatter.write_str(&smudgy_i18n::translate(key))
+    }
 }
 
 impl ExitDirection {
@@ -149,7 +171,7 @@ impl ExitDirection {
 }
 
 /// Exit direction enum matching the backend
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ExitStyle {
     #[default]
     Normal,
@@ -162,17 +184,40 @@ pub enum ExitStyle {
     Stub,
 }
 
+impl std::fmt::Display for ExitStyle {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let key = match self {
+            Self::Normal => "exit-style-normal",
+            Self::Dashed => "exit-style-dashed",
+            Self::Dotted => "exit-style-dotted",
+            Self::Meandering => "exit-style-meandering",
+            Self::Stub => "exit-style-stub",
+        };
+        formatter.write_str(&smudgy_i18n::translate(key))
+    }
+}
+
 impl ExitStyle {
     /// Every style, for pickers.
     pub const ALL: [Self; 5] =
         [Self::Normal, Self::Dashed, Self::Dotted, Self::Meandering, Self::Stub];
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ShapeType {
     #[default]
     Rectangle,
     RoundedRectangle,
+}
+
+impl std::fmt::Display for ShapeType {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let key = match self {
+            Self::Rectangle => "shape-type-rectangle",
+            Self::RoundedRectangle => "shape-type-rounded-rectangle",
+        };
+        formatter.write_str(&smudgy_i18n::translate(key))
+    }
 }
 
 impl ShapeType {
@@ -181,12 +226,23 @@ impl ShapeType {
 }
 
 /// Horizontal alignment enum for labels
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum HorizontalAlignment {
     Left,
     #[default]
     Center,
     Right,
+}
+
+impl std::fmt::Display for HorizontalAlignment {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let key = match self {
+            Self::Left => "alignment-left",
+            Self::Center => "alignment-center",
+            Self::Right => "alignment-right",
+        };
+        formatter.write_str(&smudgy_i18n::translate(key))
+    }
 }
 
 impl HorizontalAlignment {
@@ -195,12 +251,23 @@ impl HorizontalAlignment {
 }
 
 /// Vertical alignment enum for labels
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum VerticalAlignment {
     Top,
     #[default]
     Center,
     Bottom,
+}
+
+impl std::fmt::Display for VerticalAlignment {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let key = match self {
+            Self::Top => "alignment-top",
+            Self::Center => "alignment-center",
+            Self::Bottom => "alignment-bottom",
+        };
+        formatter.write_str(&smudgy_i18n::translate(key))
+    }
 }
 
 impl VerticalAlignment {

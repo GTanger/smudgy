@@ -25,21 +25,25 @@ impl AutomationsWindow {
         let header = column![
             row![
                 common::status_dot(NodeStatus::Ok),
-                text("Automations").size(30.0).font(Font {
+                text(smudgy_i18n::t!("automations-title")).size(30.0).font(Font {
                     weight: iced::font::Weight::Light,
                     ..fonts::GEIST_VF
                 }),
                 iced::widget::space::horizontal(),
                 row![
                     common::status_dot(NodeStatus::Ok),
-                    text("Connected").size(13.0).style(common::muted),
+                    text(smudgy_i18n::t!("automations-connected")).size(13.0).style(common::muted),
                 ]
                 .spacing(6.0)
                 .align_y(Vertical::Center),
             ]
             .spacing(10.0)
             .align_y(Vertical::Center),
-            text(format!("Profile · {} ({host})", self.server_name))
+            text(smudgy_i18n::t!(
+                "automations-profile",
+                "server" => &self.server_name,
+                "host" => host
+            ))
                 .size(13.0)
                 .style(common::muted),
             iced::widget::rule::horizontal(1.0),
@@ -48,9 +52,9 @@ impl AutomationsWindow {
 
         // Stat cards.
         let cards = row![
-            stat_card("Active", stats.active, NodeStatus::Ok, Message::ShowDashboard),
+            stat_card(smudgy_i18n::ts!("automations-active"), stats.active, NodeStatus::Ok, Message::ShowDashboard),
             stat_card(
-                "Errors",
+                smudgy_i18n::ts!("automations-errors"),
                 stats.errors,
                 if stats.errors > 0 { NodeStatus::Error } else { NodeStatus::Disabled },
                 stats
@@ -58,22 +62,22 @@ impl AutomationsWindow {
                     .clone()
                     .map_or(Message::ShowDashboard, Message::SelectScript),
             ),
-            stat_card("Disabled", stats.disabled, NodeStatus::Disabled, Message::ShowDashboard),
-            stat_card("Packages", stats.packages, NodeStatus::Ok, Message::SelectChip(Chip::Packages)),
+            stat_card(smudgy_i18n::ts!("automations-disabled"), stats.disabled, NodeStatus::Disabled, Message::ShowDashboard),
+            stat_card(smudgy_i18n::ts!("automations-packages"), stats.packages, NodeStatus::Ok, Message::SelectChip(Chip::Packages)),
         ]
         .spacing(12.0);
 
         // Create tiles. A wrapping flow row so the tiles reflow onto more rows
         // as the pane narrows, rather than overflowing (iced has no flex-wrap).
         let create = column![
-            common::section_label("Create"),
+            common::section_label(smudgy_i18n::ts!("automations-create")),
             wrap_row(vec![
-                create_tile(bootstrap_icons::AT, "Alias", Message::NewAlias),
-                create_tile(bootstrap_icons::LIGHTNING, "Trigger", Message::NewTrigger),
-                create_tile(bootstrap_icons::DPAD, "Hotkey", Message::NewHotkey),
-                create_tile(bootstrap_icons::FOLDER_PLUS, "Folder", Message::NewFolder),
-                create_tile(bootstrap_icons::FONTS, "Module", Message::NewModule),
-                create_tile(bootstrap_icons::BOUNDING_BOX, "Package", Message::NewPackage),
+                create_tile(bootstrap_icons::AT, smudgy_i18n::ts!("automation-alias"), Message::NewAlias),
+                create_tile(bootstrap_icons::LIGHTNING, smudgy_i18n::ts!("automation-trigger"), Message::NewTrigger),
+                create_tile(bootstrap_icons::DPAD, smudgy_i18n::ts!("automation-hotkey"), Message::NewHotkey),
+                create_tile(bootstrap_icons::FOLDER_PLUS, smudgy_i18n::ts!("automation-folder"), Message::NewFolder),
+                create_tile(bootstrap_icons::FONTS, smudgy_i18n::ts!("automation-module"), Message::NewModule),
+                create_tile(bootstrap_icons::BOUNDING_BOX, smudgy_i18n::ts!("automation-package"), Message::NewPackage),
                 palette_tile(),
             ])
             .spacing(10.0, 10.0),
@@ -85,10 +89,10 @@ impl AutomationsWindow {
         // without an account, so the teaser loads for everyone.
         let mut discover = Column::new()
             .spacing(8.0)
-            .push(common::section_label("Discover"));
+            .push(common::section_label(smudgy_i18n::ts!("automations-discover")));
         if self.featured_packages.is_empty() {
             discover = discover.push(
-                text("Browse the smudgy cloud for packages to install.")
+                text(smudgy_i18n::t!("automations-discover-help"))
                     .size(13.0)
                     .style(common::muted),
             );
@@ -99,7 +103,7 @@ impl AutomationsWindow {
         discover = discover.push(
             row![
                 iced::widget::space::horizontal(),
-                button(text("See more \u{2192}").size(13.0))
+                button(text(smudgy_i18n::t!("automations-see-more")).size(13.0))
                     .style(button_style::secondary)
                     .on_press(Message::OpenDiscover),
             ]

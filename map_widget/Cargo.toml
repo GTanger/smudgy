@@ -8,4 +8,4 @@ iced = { workspace = true }
 iced_anim = { workspace = true }
 smudgy_cloud = { workspace = true }
 smudgy_theme = { workspace = true }
-
+smudgy_i18n = { workspace = true }

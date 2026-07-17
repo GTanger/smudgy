@@ -176,7 +176,7 @@ pub fn translate_static(id: &str) -> &'static str {
     let key = (locale, id.to_string());
     let mut cache = STATIC_TRANSLATIONS
         .lock()
-        .expect("static translation cache lock");
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     if let Some(value) = cache.get(&key) {
         return value;
     }
@@ -251,8 +251,51 @@ fn catalog_ids(source: &str) -> std::collections::BTreeSet<&str> {
 }
 
 #[cfg(test)]
+fn catalog_variables(
+    source: &str,
+) -> std::collections::BTreeMap<String, std::collections::BTreeSet<String>> {
+    use regex::Regex;
+    use std::collections::{BTreeMap, BTreeSet};
+
+    let variable = Regex::new(r"\{\s*\$([A-Za-z][A-Za-z0-9_-]*)").unwrap();
+    let mut messages: BTreeMap<String, String> = BTreeMap::new();
+    let mut current: Option<String> = None;
+
+    for line in source.lines() {
+        if !line.starts_with(char::is_whitespace)
+            && !line.starts_with('#')
+            && let Some((id, value)) = line.split_once(" = ")
+        {
+            current = Some(id.to_string());
+            messages.insert(id.to_string(), value.to_string());
+            continue;
+        }
+        if line.starts_with(char::is_whitespace)
+            && let Some(id) = &current
+            && let Some(value) = messages.get_mut(id)
+        {
+            value.push('\n');
+            value.push_str(line);
+        }
+    }
+
+    messages
+        .into_iter()
+        .map(|(id, value)| {
+            let variables: BTreeSet<String> = variable
+                .captures_iter(&value)
+                .map(|capture| capture[1].to_string())
+                .collect();
+            (id, variables)
+        })
+        .collect()
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
+    use regex::Regex;
+    use std::path::{Path, PathBuf};
 
     static LOCALE_TEST_LOCK: Mutex<()> = Mutex::new(());
 
@@ -277,6 +320,100 @@ mod tests {
     }
 
     #[test]
+    fn traditional_chinese_catalog_matches_english_variables() {
+        assert_eq!(
+            catalog_variables(EN_US_SOURCE),
+            catalog_variables(ZH_TW_SOURCE)
+        );
+    }
+
+    fn rust_sources(root: &Path, out: &mut Vec<PathBuf>) {
+        let mut entries: Vec<_> = std::fs::read_dir(root)
+            .unwrap_or_else(|error| panic!("read {}: {error}", root.display()))
+            .map(|entry| entry.expect("read source entry").path())
+            .collect();
+        entries.sort();
+        for path in entries {
+            if path.is_dir() {
+                rust_sources(&path, out);
+            } else if path.extension().is_some_and(|extension| extension == "rs") {
+                out.push(path);
+            }
+        }
+    }
+
+    fn workspace_sources() -> Vec<PathBuf> {
+        let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("i18n crate has workspace parent");
+        let mut sources = Vec::new();
+        for root in ["i18n/src", "ui/src", "core/src", "cloud/src", "widgets/src", "map_widget/src"] {
+            rust_sources(&workspace.join(root), &mut sources);
+        }
+        sources
+    }
+
+    #[test]
+    fn every_translation_macro_references_a_catalog_message() {
+        let known = catalog_ids(EN_US_SOURCE);
+        let invocation = Regex::new(r#"(?:smudgy_i18n::)?t(?:s)?!\s*\(\s*\"([a-z][a-z0-9-]*)\""#)
+            .unwrap();
+        let mut missing = Vec::new();
+        for path in workspace_sources() {
+            let source = std::fs::read_to_string(&path)
+                .unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+            for capture in invocation.captures_iter(&source) {
+                let id = &capture[1];
+                if !known.contains(id) {
+                    missing.push(format!("{}: {id}", path.display()));
+                }
+            }
+        }
+        assert!(missing.is_empty(), "translation keys missing from catalogs:\n{}", missing.join("\n"));
+    }
+
+    #[test]
+    fn first_party_visible_literals_are_classified() {
+        // This intentionally targets display constructors and session-output methods rather than
+        // every Rust string. Protocol tokens, logs, tests, paths, and user-authored content are
+        // different ownership classes and must not be fed through the UI catalog.
+        let visible_literal = Regex::new(
+            r#"(?s)(?:\btext|\btext_input|\bsection_label|\berror_bar|\bshow_toast|\.label|\.placeholder|echo_str_sync|echo_warn_str_sync|StyledLine::from_echo_str)\s*\(\s*\"([A-Za-z][^\"]*)\""#,
+        )
+        .unwrap();
+        let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("i18n crate has workspace parent");
+        // Technical/symbolic literals that are intentionally rendered verbatim. Keep this list
+        // narrow and explain each entry so an exception cannot become an English-copy dumping zone.
+        let allowlist = [
+            ("widgets/src/widget.rs", "x", "symbolic test/default widget content"),
+        ];
+        let mut unclassified = Vec::new();
+        for path in workspace_sources() {
+            let source = std::fs::read_to_string(&path)
+                .unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+            let production = source.split("#[cfg(test)]").next().unwrap_or(&source);
+            let relative = path.strip_prefix(workspace).unwrap_or(&path).to_string_lossy();
+            for capture in visible_literal.captures_iter(production) {
+                let literal = &capture[1];
+                let allowed = allowlist
+                    .iter()
+                    .any(|(file, value, _reason)| relative == *file && literal == *value);
+                if !allowed {
+                    let line = production[..capture.get(0).unwrap().start()].lines().count() + 1;
+                    unclassified.push(format!("{relative}:{line}: {literal:?}"));
+                }
+            }
+        }
+        assert!(
+            unclassified.is_empty(),
+            "unclassified first-party visible literals:\n{}",
+            unclassified.join("\n")
+        );
+    }
+
+    #[test]
     fn interpolation_and_locale_switching_work() {
         let _guard = LOCALE_TEST_LOCK
             .lock()
@@ -285,6 +422,15 @@ mod tests {
         assert_eq!(t!("welcome-name", "name" => "Mira"), "Welcome, Mira.");
         activate(LocalePreference::TraditionalChinese);
         assert_eq!(t!("welcome-name", "name" => "Mira"), "歡迎，Mira。");
+    }
+
+    #[test]
+    fn technical_placeholder_keeps_newline_and_password_token() {
+        let _guard = LOCALE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        activate(LocalePreference::TraditionalChinese);
+        assert_eq!(t!("profile-on-connect-example"), "Gandalf\n$PASSWORD");
     }
 
     #[test]

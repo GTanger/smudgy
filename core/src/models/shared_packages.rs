@@ -738,16 +738,19 @@ impl SmudgyVersionFloor {
     #[must_use]
     pub fn refusal(&self, running: &semver::Version) -> Option<String> {
         if let Some((raw, declared_by)) = &self.invalid {
-            return Some(format!(
-                "{declared_by} declares an unusable min_smudgy_version (\"{raw}\" is not a \
-                 semver version); the package needs a corrected release"
+            return Some(smudgy_i18n::t!(
+                "package-version-floor-invalid",
+                "package" => declared_by,
+                "version" => raw
             ));
         }
         let (min, declared_by) = self.highest.as_ref()?;
         (*min > *running).then(|| {
-            format!(
-                "{declared_by} requires smudgy {min} or newer \u{2014} this smudgy is \
-                 {running}; update smudgy to use it"
+            smudgy_i18n::t!(
+                "package-version-floor-newer",
+                "package" => declared_by,
+                "required" => min,
+                "running" => running
             )
         })
     }

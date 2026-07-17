@@ -155,7 +155,10 @@ impl Inner<'_> {
                 self.script_engine
                     .set_current_line(Some(Arc::downgrade(&line)));
                 if let Err(err) = self.trigger_manager.process_incoming_line(&line) {
-                    return Ok(ActionResult::Echo(format!("Error processing line {err:?}")));
+                    return Ok(ActionResult::Echo(smudgy_i18n::t!(
+                        "runtime-process-line-error",
+                        "error" => format!("{err:?}")
+                    )));
                 }
 
                 // `sys:receive` fires post-trigger but before `CompleteLineTriggersProcessed`
@@ -183,8 +186,9 @@ impl Inner<'_> {
                     .set_current_line(Some(Arc::downgrade(&line)));
                 match self.trigger_manager.process_partial_line(line) {
                     Ok(()) => Ok(ActionResult::None),
-                    Err(err) => Ok(ActionResult::Echo(format!(
-                        "Error processing partial line {err:?}"
+                    Err(err) => Ok(ActionResult::Echo(smudgy_i18n::t!(
+                        "runtime-process-partial-line-error",
+                        "error" => format!("{err:?}")
                     ))),
                 }
             }
@@ -248,8 +252,9 @@ impl Inner<'_> {
                 } else if let Some(rest) = line.strip_prefix('=') {
                     match self.trigger_manager.process_outgoing_line(rest) {
                         Ok(()) => Ok(ActionResult::None),
-                        Err(err) => Ok(ActionResult::Echo(format!(
-                            "Error processing command {err:?}"
+                        Err(err) => Ok(ActionResult::Echo(smudgy_i18n::t!(
+                            "runtime-process-command-error",
+                            "error" => format!("{err:?}")
                         ))),
                     }
                 } else {
@@ -275,8 +280,9 @@ impl Inner<'_> {
                         let payload = serde_json::json!({ "command": line.as_str() }).to_string();
                         Ok(self.run_host_event("sys:send", &payload))
                     }
-                    Err(err) => Ok(ActionResult::Echo(format!(
-                        "Error processing command {err:?}"
+                    Err(err) => Ok(ActionResult::Echo(smudgy_i18n::t!(
+                        "runtime-process-command-error",
+                        "error" => format!("{err:?}")
                     ))),
                 }
             }
@@ -332,7 +338,10 @@ impl Inner<'_> {
                     .script_engine
                     .run_script(&self.trigger_manager, &isolate, id, &matches, depth)
                     .unwrap_or_else(|err| {
-                        ActionResult::Echo(format!("JavaScript Error: {err:?}"))
+                        ActionResult::Echo(smudgy_i18n::t!(
+                            "runtime-javascript-error",
+                            "error" => format!("{err:?}")
+                        ))
                     });
 
                 if self.script_engine.get_is_captured(&isolate)
@@ -355,7 +364,10 @@ impl Inner<'_> {
                     .script_engine
                     .call_javascript_function(&self.trigger_manager, &isolate, id, &matches, depth)
                     .unwrap_or_else(|err| {
-                        ActionResult::Echo(format!("Error in Javascript Function: {err:?}"))
+                        ActionResult::Echo(smudgy_i18n::t!(
+                            "runtime-javascript-function-error",
+                            "error" => format!("{err:?}")
+                        ))
                     });
 
                 if self.script_engine.get_is_captured(&isolate)
@@ -448,9 +460,10 @@ impl Inner<'_> {
                             ) {
                                 Ok(script_id) => ScriptAction::EvalJavascript(script_id),
                                 Err(err) => {
-                                    self.echo_warn_str(
-                                        format!("Error adding script: {err:?}").as_str(),
-                                    )?;
+                                    self.echo_warn_str(&smudgy_i18n::t!(
+                                        "runtime-add-script-error",
+                                        "error" => format!("{err:?}")
+                                    ))?;
                                     ScriptAction::Noop
                                 }
                             }
@@ -512,8 +525,9 @@ impl Inner<'_> {
                                     0,
                                 )
                                 .unwrap_or_else(|err| {
-                                    ActionResult::Echo(format!(
-                                        "Error in Javascript Function: {err:?}"
+                                    ActionResult::Echo(smudgy_i18n::t!(
+                                        "runtime-javascript-function-error",
+                                        "error" => format!("{err:?}")
                                     ))
                                 });
 
@@ -530,8 +544,9 @@ impl Inner<'_> {
                                     0,
                                 )
                                 .unwrap_or_else(|err| {
-                                    ActionResult::Echo(format!(
-                                        "Error calling Javascript Function: {err:?}"
+                                    ActionResult::Echo(smudgy_i18n::t!(
+                                        "runtime-call-javascript-function-error",
+                                        "error" => format!("{err:?}")
                                     ))
                                 });
 

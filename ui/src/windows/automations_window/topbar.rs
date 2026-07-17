@@ -18,7 +18,7 @@ impl AutomationsWindow {
     pub(super) fn view_topbar(&self) -> Elem<'_> {
         // ---- breadcrumb ----
         let mut crumbs = row![
-            button(text("Automations").size(13.0).style(common::muted))
+            button(text(smudgy_i18n::t!("automations-title")).size(13.0).style(common::muted))
                 .style(button_style::list_item)
                 .on_press(Message::ShowDashboard)
                 .padding(Padding {
@@ -47,10 +47,10 @@ impl AutomationsWindow {
         let shared_active = matches!(self.pane, Pane::Shared);
         let store_active = matches!(self.pane, Pane::StoreInspector);
         let mut actions = row![
-            action_button(bootstrap_icons::CLOUD_CHECK, "Discover", Message::OpenDiscover, discover_active),
-            action_button(bootstrap_icons::PEOPLE, "Private & Shared", Message::OpenShared, shared_active),
-            action_button(bootstrap_icons::DATABASE, "Store", Message::OpenStoreInspector, store_active),
-            action_button(bootstrap_icons::ARROW_REPEAT, "Reload", Message::Reload, false),
+            action_button(bootstrap_icons::CLOUD_CHECK, smudgy_i18n::ts!("automations-discover"), Message::OpenDiscover, discover_active),
+            action_button(bootstrap_icons::PEOPLE, smudgy_i18n::ts!("automations-private-shared"), Message::OpenShared, shared_active),
+            action_button(bootstrap_icons::DATABASE, smudgy_i18n::ts!("automations-store"), Message::OpenStoreInspector, store_active),
+            action_button(bootstrap_icons::ARROW_REPEAT, smudgy_i18n::ts!("automations-reload"), Message::Reload, false),
         ]
         .spacing(6.0)
         .align_y(Vertical::Center);
@@ -94,7 +94,7 @@ impl AutomationsWindow {
                 v
             }
             Selection::Folder(path) => path.split('/').map(str::to_string).collect(),
-            Selection::Module(subpath) => vec!["Modules".to_string(), subpath.clone()],
+            Selection::Module(subpath) => vec![smudgy_i18n::t!("automations-modules"), subpath.clone()],
             Selection::OwnedPackage(name) => vec![name.clone()],
             Selection::InstalledPackage(spec) => vec![package_display_name(spec).to_string()],
             Selection::Dependency { parent, spec } => vec![
@@ -115,9 +115,9 @@ impl AutomationsWindow {
                     .unwrap_or_else(|| creator_id.clone());
                 vec![creator, name.clone()]
             }
-            Selection::Discover => vec!["Discover".to_string()],
-            Selection::Shared => vec!["Private & Shared".to_string()],
-            Selection::StoreInspector => vec!["Session Store".to_string()],
+            Selection::Discover => vec![smudgy_i18n::t!("automations-discover")],
+            Selection::Shared => vec![smudgy_i18n::t!("automations-private-shared")],
+            Selection::StoreInspector => vec![smudgy_i18n::t!("automations-session-store")],
         }
     }
 }
@@ -168,7 +168,7 @@ fn inspect_button() -> Elem<'static> {
         button(
             row![
                 text(bootstrap_icons::CROSSHAIR).font(fonts::BOOTSTRAP_ICONS).size(13.0),
-                text("Inspect").size(13.0),
+                text(smudgy_i18n::t!("automations-inspect")).size(13.0),
             ]
             .spacing(7.0)
             .align_y(Vertical::Center),
@@ -181,8 +181,7 @@ fn inspect_button() -> Elem<'static> {
             left: 9.0,
             right: 9.0,
         }),
-        "Open the script inspector for this server's active session \
-         (requires a connected, debug-enabled session)",
+        smudgy_i18n::ts!("automations-inspect-help"),
         tooltip::Position::Bottom,
     )
     .into()

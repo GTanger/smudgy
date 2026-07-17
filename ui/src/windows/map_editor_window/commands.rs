@@ -27,6 +27,8 @@ use smudgy_cloud::{
 };
 use smudgy_map_widget::map_editor::{EntityId, Selection};
 
+use crate::components::cloud_errors::display_error;
+
 pub type CommandId = u64;
 pub type SlotId = usize;
 
@@ -526,7 +528,7 @@ impl CommandStack {
                             slot,
                             room_key: result_key.clone(),
                             follow_up: follow_up.clone(),
-                            result: result.map_err(|error| error.to_string()),
+                            result: result.map_err(|error| display_error(&error)),
                         },
                     ));
                 }
@@ -557,7 +559,7 @@ impl CommandStack {
                         move |result| Outcome::Label {
                             command: command_id,
                             slot,
-                            result: result.map_err(|error| error.to_string()),
+                            result: result.map_err(|error| display_error(&error)),
                         },
                     ));
                 }
@@ -588,7 +590,7 @@ impl CommandStack {
                         move |result| Outcome::Shape {
                             command: command_id,
                             slot,
-                            result: result.map_err(|error| error.to_string()),
+                            result: result.map_err(|error| display_error(&error)),
                         },
                     ));
                 }
@@ -1510,7 +1512,7 @@ pub fn create_label(area_id: AreaId, rect: iced::Rectangle, level: i32) -> Comma
                 y: rect.y,
                 width: rect.width,
                 height: rect.height,
-                text: "Label".to_string(),
+                text: smudgy_i18n::t!("inspector-label"),
                 color: "#c8c8c8".to_string(),
                 // Explicitly transparent: an absent background invites
                 // server-side creation defaults (historically white).

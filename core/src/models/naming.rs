@@ -46,36 +46,37 @@ const RESERVED_DEVICE_NAMES: &[&str] = &[
 pub fn validate_name(name: &str) -> Result<(), String> {
     let name = name.trim();
     if name.is_empty() {
-        return Err("Name cannot be empty".to_string());
+        return Err(smudgy_i18n::t!("validation-name-empty"));
     }
     if name.chars().count() > MAX_NAME_LEN {
-        return Err(format!(
-            "Name cannot be longer than {MAX_NAME_LEN} characters"
+        return Err(smudgy_i18n::t!(
+            "validation-name-too-long",
+            "max" => MAX_NAME_LEN
         ));
     }
     for c in name.chars() {
         if ILLEGAL_NAME_CHARS.contains(&c) {
-            return Err(format!("Name cannot contain '{c}'"));
+            return Err(smudgy_i18n::t!("validation-name-character", "character" => c));
         }
         if c.is_control() {
-            return Err("Name cannot contain control characters".to_string());
+            return Err(smudgy_i18n::t!("validation-name-control"));
         }
         // A single space is fine; tabs, newlines, and other whitespace are not.
         if c.is_whitespace() && c != ' ' {
-            return Err("Name cannot contain tabs or line breaks".to_string());
+            return Err(smudgy_i18n::t!("validation-name-whitespace"));
         }
     }
     // Windows strips trailing dots/spaces, and a leading dot collides with the
     // `.`/`..` directory entries (and creates a hidden file on Unix).
     if name.starts_with('.') || name.ends_with('.') {
-        return Err("Name cannot start or end with a '.'".to_string());
+        return Err(smudgy_i18n::t!("validation-name-dot-edge"));
     }
     let stem = name.split('.').next().unwrap_or(name);
     if RESERVED_DEVICE_NAMES
         .iter()
         .any(|reserved| stem.eq_ignore_ascii_case(reserved))
     {
-        return Err(format!("'{name}' is a reserved name"));
+        return Err(smudgy_i18n::t!("validation-name-reserved", "name" => name));
     }
     Ok(())
 }
@@ -90,11 +91,11 @@ pub fn validate_name(name: &str) -> Result<(), String> {
 pub fn validate_folder_path(path: &str) -> Result<(), String> {
     let path = path.trim();
     if path.is_empty() {
-        return Err("Folder name cannot be empty".to_string());
+        return Err(smudgy_i18n::t!("validation-folder-empty"));
     }
     for segment in path.split('/') {
         if segment.trim().is_empty() {
-            return Err("Folder path cannot contain empty segments".to_string());
+            return Err(smudgy_i18n::t!("validation-folder-empty-segment"));
         }
         validate_name(segment)?;
     }
@@ -112,17 +113,17 @@ pub fn validate_folder_path(path: &str) -> Result<(), String> {
 pub fn validate_module_subpath(path: &str) -> Result<(), String> {
     let path = path.trim();
     if path.is_empty() {
-        return Err("Module name cannot be empty".to_string());
+        return Err(smudgy_i18n::t!("validation-module-empty"));
     }
     if path.starts_with('/') {
-        return Err("Module name cannot start with '/'".to_string());
+        return Err(smudgy_i18n::t!("validation-module-leading-slash"));
     }
     for segment in path.split('/') {
         if segment.is_empty() {
-            return Err("Module path cannot contain empty segments".to_string());
+            return Err(smudgy_i18n::t!("validation-module-empty-segment"));
         }
         if segment == "." || segment == ".." {
-            return Err("Module path cannot contain '.' or '..' segments".to_string());
+            return Err(smudgy_i18n::t!("validation-module-traversal"));
         }
         validate_name(segment)?;
     }
@@ -141,18 +142,19 @@ pub fn validate_module_subpath(path: &str) -> Result<(), String> {
 pub fn validate_package_name(name: &str) -> Result<(), String> {
     let name = name.trim();
     if name.is_empty() {
-        return Err("Package name cannot be empty".to_string());
+        return Err(smudgy_i18n::t!("validation-package-empty"));
     }
     if name.chars().count() > MAX_NAME_LEN {
-        return Err(format!(
-            "Package name cannot be longer than {MAX_NAME_LEN} characters"
+        return Err(smudgy_i18n::t!(
+            "validation-package-too-long",
+            "max" => MAX_NAME_LEN
         ));
     }
     if !name
         .chars()
         .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
     {
-        return Err("Package names may only contain letters, digits, '-' and '_'".to_string());
+        return Err(smudgy_i18n::t!("validation-package-characters"));
     }
     Ok(())
 }

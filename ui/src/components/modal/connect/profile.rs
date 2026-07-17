@@ -99,6 +99,10 @@ pub(super) fn handle_submit_profile_form(state: &mut State) -> Task<Message> {
                 state.profile_crud_error = Some(t!("profile-error-name-empty"));
                 return Task::none();
             }
+            if profile_name.contains(|c: char| !c.is_alphanumeric() && c != '_' && c != '-') {
+                state.profile_crud_error = Some(t!("profile-error-name-format"));
+                return Task::none();
+            }
             Task::perform(
                 create_profile_async(server_name, profile_name, config),
                 Message::ProfileCreated,
@@ -296,7 +300,7 @@ fn on_connect_field(state: &State) -> Element<'_, Message> {
         field_label(t!("profile-on-connect")),
         text_editor(&state.profile_form_send_on_connect_content)
             .id(profile_send_on_connect_id())
-            .placeholder("Gandalf\n$PASSWORD")
+            .placeholder(ts!("profile-on-connect-example"))
             // ~7 lines tall (≈20px per line).
             .height(Length::Fixed(140.0))
             .font(fonts::GEIST_MONO_VF)

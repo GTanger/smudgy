@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 # Core dependencies
+smudgy_i18n = { workspace = true }
 derive_more = { workspace = true, features = ["display", "from", "into", "add"] }
 uuid = { version = "1.7", features = ["v4", "serde"] }
 chrono = { workspace = true, features = ["serde"] }

@@ -303,7 +303,7 @@ pub fn owned_folders(
         sort_by_name(&mut loose);
         folders.push(Folder {
             key: FolderKey::Loose,
-            label: "Loose maps".to_string(),
+            label: smudgy_i18n::t!("mapper-loose-maps"),
             areas: loose,
             owned: true,
         });
@@ -383,7 +383,7 @@ pub fn shared_groups(
         };
         let sharer_label = sharer_nickname
             .clone()
-            .unwrap_or_else(|| "a friend".to_string());
+            .unwrap_or_else(|| smudgy_i18n::t!("mapper-a-friend"));
 
         // Re-share badge: the displayed sharer differs from the map's owner.
         // Owner handle comes from GET /areas (meta); fall back to the grant's
@@ -394,7 +394,7 @@ pub fn shared_groups(
                 meta.owner_nickname
                     .clone()
                     .or_else(|| sharer.owner_nickname.clone())
-                    .unwrap_or_else(|| "a friend".to_string()),
+                    .unwrap_or_else(|| smudgy_i18n::t!("mapper-a-friend")),
             ),
             _ => None,
         };
@@ -429,7 +429,7 @@ pub fn shared_groups(
                     .atlas_name
                     .clone()
                     .filter(|name| !name.is_empty())
-                    .unwrap_or_else(|| "Shared folder".to_string());
+                    .unwrap_or_else(|| smudgy_i18n::t!("area-list-shared-folder"));
                 let folder = accum
                     .by_atlas
                     .entry(atlas_id)
@@ -465,7 +465,7 @@ pub fn shared_groups(
             let mut loose = accum.loose;
             sort_by_name(&mut loose);
             SharedGroup {
-                label: format!("Shared by {}", accum.label),
+                label: smudgy_i18n::t!("area-list-shared-by", "person" => accum.label),
                 folders,
                 loose,
             }
@@ -514,16 +514,16 @@ pub fn view(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
     let selected = window.editor.area_id();
 
     let header = row![
-        text("Areas").size(14),
+        text(smudgy_i18n::t!("area-list-title")).size(14),
         space::horizontal(),
         tooltip(
             icon_button(bootstrap_icons::PLUS_LG, Message::NewAreaRequested),
-            "New map",
+            smudgy_i18n::ts!("area-list-new-map"),
             tooltip::Position::Bottom,
         ),
         tooltip(
             icon_button(bootstrap_icons::FOLDER_PLUS, Message::NewAtlasRequested),
-            "New folder",
+            smudgy_i18n::ts!("area-list-new-folder"),
             tooltip::Position::Bottom,
         ),
     ]
@@ -564,7 +564,7 @@ pub fn view(window: &MapEditorWindow) -> ThemedElement<'_, Message> {
     // above (they never persist); shown here for diagnosis + promotion.
     let session = session_maps(&atlas, &ephemeral);
     if !session.is_empty() {
-        list = list.push(group_label("Session maps".to_string()));
+        list = list.push(group_label(smudgy_i18n::t!("area-list-session-maps")));
         for area in session {
             list = list.push(area_row(window, area, selected, false));
         }
@@ -706,7 +706,7 @@ fn render_this_server<'a>(
 
     // "My maps" labels the owned tree only when shared groups also appear.
     if has_shared && !owned_here.is_empty() {
-        list = list.push(group_label("My maps".to_string()));
+        list = list.push(group_label(smudgy_i18n::t!("area-list-my-maps")));
     }
     for folder in owned_here {
         list = push_folder(list, window, folder, selected);
@@ -757,9 +757,9 @@ fn render_all_buckets<'a>(
     }
 
     let headers = [
-        format!("On {server}"),
-        "Unassigned".to_string(),
-        "Other servers".to_string(),
+        smudgy_i18n::t!("area-list-on-server", "server" => server),
+        smudgy_i18n::t!("area-list-unassigned"),
+        smudgy_i18n::t!("area-list-other-servers"),
     ];
     for (idx, header) in headers.into_iter().enumerate() {
         let owned_bucket = std::mem::take(&mut owned[idx]);
@@ -792,7 +792,7 @@ fn render_flat<'a>(
         let owned: Vec<AreaSummary> = folders.into_iter().flat_map(|folder| folder.areas).collect();
         if !owned.is_empty() {
             if has_shared {
-                list = list.push(group_label("My maps".to_string()));
+                list = list.push(group_label(smudgy_i18n::t!("area-list-my-maps")));
             }
             for area in owned {
                 list = list.push(area_row(window, area, selected, false));
@@ -800,7 +800,7 @@ fn render_flat<'a>(
         }
     } else {
         if has_shared {
-            list = list.push(group_label("My maps".to_string()));
+            list = list.push(group_label(smudgy_i18n::t!("area-list-my-maps")));
         }
         for folder in folders {
             list = push_folder(list, window, folder, selected);
@@ -837,11 +837,16 @@ fn scope_control(window: &MapEditorWindow) -> Option<ThemedElement<'_, Message>>
         button(text(label).size(11))
             .style(style)
             .on_press(Message::ScopeAllToggled(all))
+            .width(Length::FillPortion(1))
     };
     Some(
         row![
-            tab(format!("This server ({server})"), !window.scope_all, false),
-            tab("All atlases".to_string(), window.scope_all, true),
+            tab(
+                smudgy_i18n::t!("area-list-this-server", "server" => server),
+                !window.scope_all,
+                false
+            ),
+            tab(smudgy_i18n::t!("area-list-all-atlases"), window.scope_all, true),
         ]
         .spacing(4)
         .align_y(Vertical::Center)
@@ -860,7 +865,7 @@ fn unassigned_header<'a>(count: usize, collapsed: bool) -> ThemedElement<'a, Mes
             .style(|theme: &crate::Theme| iced::widget::text::Style {
                 color: Some(theme.styles.text.normal.scale_alpha(0.6)),
             }),
-        text("Unassigned").size(13),
+        text(smudgy_i18n::t!("area-list-unassigned")).size(13),
         space::horizontal(),
         badge(count.to_string()),
     ]
@@ -904,7 +909,7 @@ fn folder_header<'a>(
     if let Some((renaming_id, name)) = &window.renaming_atlas
         && FolderKey::Atlas(*renaming_id) == folder.key
     {
-        return text_input("folder name", name)
+        return text_input(smudgy_i18n::ts!("mapper-folder-name-placeholder"), name)
             .size(13)
             .on_input(Message::RenameAtlasChanged)
             .on_submit(Message::RenameAtlasCommitted)
@@ -928,7 +933,7 @@ fn folder_header<'a>(
     .width(Length::Fill);
 
     header = header.push(badge(if count == 0 {
-        "empty".to_string()
+        smudgy_i18n::t!("area-list-empty")
     } else {
         count.to_string()
     }));
@@ -943,17 +948,17 @@ fn folder_header<'a>(
         if folder.owned {
             header = header.push(tooltip(
                 icon_button(bootstrap_icons::PLUS_LG, Message::NewAreaInAtlas(atlas_id)),
-                "New map in folder",
+                smudgy_i18n::ts!("area-list-new-map-folder"),
                 tooltip::Position::Bottom,
             ));
             header = header.push(tooltip(
                 icon_button(bootstrap_icons::PENCIL, Message::RenameAtlasStarted(atlas_id)),
-                "Rename folder",
+                smudgy_i18n::ts!("area-list-rename-folder"),
                 tooltip::Position::Bottom,
             ));
             header = header.push(tooltip(
                 icon_button(bootstrap_icons::TRASH_3, Message::DeleteAtlasRequested(atlas_id)),
-                "Delete folder",
+                smudgy_i18n::ts!("area-list-delete-folder"),
                 tooltip::Position::Bottom,
             ));
             // Sharing is cloud-only — a local folder has no server identity, so
@@ -961,10 +966,13 @@ fn folder_header<'a>(
             // both tiers.
             if !window.local_atlas_ids.contains(&atlas_id) {
                 header = header
-                    .push(text_button("Share\u{2026}", Message::ShareAtlasRequested(atlas_id)));
+                    .push(text_button(
+                        smudgy_i18n::ts!("area-list-share-action"),
+                        Message::ShareAtlasRequested(atlas_id),
+                    ));
                 // Hand the whole folder to a friend (owner-only).
                 header = header.push(text_button(
-                    "Transfer\u{2026}",
+                    smudgy_i18n::ts!("mapper-transfer-action"),
                     Message::TransferAtlasOwnershipRequested(atlas_id),
                 ));
             }
@@ -975,7 +983,7 @@ fn folder_header<'a>(
         // atlas is entry-isolated and never scoped.
         if !window.local_atlas_ids.contains(&atlas_id) {
             header = header.push(text_button(
-                "Servers\u{2026}",
+                smudgy_i18n::ts!("area-list-servers-action"),
                 Message::ServersChecklistRequested(ScopeTarget::Atlas(atlas_id)),
             ));
         }
@@ -1004,7 +1012,7 @@ fn area_row<'a>(
     if let Some((renaming_id, name)) = &window.renaming_area
         && *renaming_id == area.id
     {
-        return text_input("area name", name)
+        return text_input(smudgy_i18n::ts!("mapper-area-name-placeholder"), name)
             .size(14)
             .on_input(Message::RenameAreaChanged)
             .on_submit(Message::RenameAreaCommitted)
@@ -1032,8 +1040,8 @@ fn area_row<'a>(
     // tooltip explains what "inactive" means.
     if !area.enabled {
         item = item.push(tooltip(
-            badge("Inactive".to_string()),
-            "Not used to find your location as you play",
+            badge(smudgy_i18n::t!("inspector-inactive")),
+            smudgy_i18n::ts!("area-list-inactive-tip"),
             tooltip::Position::Bottom,
         ));
     }
@@ -1052,8 +1060,8 @@ fn area_row<'a>(
     // Family badge: this map is one of several copies sharing an origin.
     if area.in_family {
         item = item.push(tooltip(
-            badge("copy".to_string()),
-            "One of several copies of the same map \u{2014} open it to pick the active copy",
+            badge(smudgy_i18n::t!("area-list-copy-badge")),
+            smudgy_i18n::ts!("area-list-copy-family-tip"),
             tooltip::Position::Bottom,
         ));
     }
@@ -1063,19 +1071,23 @@ fn area_row<'a>(
         let sharer = area
             .sharer_label
             .clone()
-            .unwrap_or_else(|| "a friend".to_string());
+            .unwrap_or_else(|| smudgy_i18n::t!("mapper-a-friend"));
         item = item.push(tooltip(
-            badge(format!("owned by {owner}")),
-            text(format!("Re-shared: {sharer} shared a map owned by {owner}")),
+            badge(smudgy_i18n::t!("area-list-owned-by", "owner" => owner)),
+            text(smudgy_i18n::t!(
+                "area-list-reshared",
+                "sharer" => sharer,
+                "owner" => owner
+            )),
             tooltip::Position::Bottom,
         ));
     }
 
     // Subtle capability badges on shared rows.
     if !area.owned && area.can_admin {
-        item = item.push(badge("admin".to_string()));
+        item = item.push(badge(smudgy_i18n::t!("area-list-admin-badge")));
     } else if !area.owned && area.can_edit {
-        item = item.push(badge("edit".to_string()));
+        item = item.push(badge(smudgy_i18n::t!("area-list-edit-badge")));
     }
 
     item = item.push(space::horizontal());
@@ -1084,9 +1096,9 @@ fn area_row<'a>(
     // current state (switch on = active), the tooltip the action.
     if is_selected {
         let (codepoint, tip) = if area.enabled {
-            (bootstrap_icons::TOGGLE_ON, "Active — click to deactivate")
+            (bootstrap_icons::TOGGLE_ON, smudgy_i18n::ts!("inspector-active-tip"))
         } else {
-            (bootstrap_icons::TOGGLE_OFF, "Inactive — click to activate")
+            (bootstrap_icons::TOGGLE_OFF, smudgy_i18n::ts!("inspector-inactive-tip"))
         };
         item = item.push(tooltip(
             icon_button(codepoint, Message::ToggleAreaEnabled(area.id)),
@@ -1098,7 +1110,10 @@ fn area_row<'a>(
     // rename/delete are gated on "owner OR admin" (server: is_owner OR can_admin).
     // Move (same-owner) and Transfer (raw is_owner) stay owner-only.
     if is_selected && area.owned && has_folders {
-        item = item.push(text_button("Move\u{2026}", Message::MoveAreaRequested(area.id)));
+        item = item.push(text_button(
+            smudgy_i18n::ts!("area-list-move-action"),
+            Message::MoveAreaRequested(area.id),
+        ));
     }
     if is_selected && (area.owned || area.can_admin) {
         item = item.push(icon_button(
@@ -1112,7 +1127,7 @@ fn area_row<'a>(
     }
     if is_selected && area.owned {
         item = item.push(text_button(
-            "Transfer\u{2026}",
+            smudgy_i18n::ts!("mapper-transfer-action"),
             Message::TransferAreaOwnershipRequested(area.id),
         ));
     }
@@ -1122,7 +1137,7 @@ fn area_row<'a>(
         && let Some(target) = area.scope_target
     {
         item = item.push(text_button(
-            "Servers\u{2026}",
+            smudgy_i18n::ts!("area-list-servers-action"),
             Message::ServersChecklistRequested(target),
         ));
     }

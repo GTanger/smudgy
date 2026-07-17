@@ -1,84 +1,93 @@
 # Session State
 
-**Current Phase**: Phase 2 - Locale foundation
-**Current Stage**: Implementation
-**Last Checkpoint**: `a8c00e2` - Locale foundation and settings migration
+**Current Phase**: Complete
+**Current Stage**: Draft PR published
+**Last Checkpoint**: `f7fc159` - Complete Traditional Chinese client localization
 **Planning Doc**: `docs/LOCALIZATION_PLAN.md`
+**Draft PR**: https://github.com/GTanger/smudgy/pull/1
 
 ## Scope Guard
 
-Deliver a maintainable `zh-TW` client, CJK product support, and UTF-8/Big5
-per-server compatibility without rewriting Smudgy's game-independent systems,
-forking its hosted backend, or translating remote MUD content. Closeout requires
-automated checks, actual UI inspection, upstream/fork state, and 5S accounting.
+The fork now provides a maintainable `zh-TW` client, embedded CJK fonts, and
+per-server UTF-8/Big5 compatibility without translating remote MUD/player or
+third-party package content, transcoding Telnet/GMCP/MSDP protocol frames, or
+forking Smudgy's hosted backend.
 
 ## Phase 1: Baseline and inventory ✅
 
-**Type**: Infrastructure / UI / Integration
-**Started**: 2026-07-17
-**Spec**: `docs/LOCALIZATION_PLAN.md#phase-1-baseline-and-inventory`
+- [x] Create `GTanger/smudgy`, configure `origin` / `upstream`, and branch from
+  upstream commit `a282000eea17440df511c74b42df4afe6b889444`
+- [x] Lock scope, non-scope, load-bearing relationships, and exit gates
+- [x] Inventory first-party visible strings and trace locale, font, input,
+  Telnet, VT, cloud-error, and wire-encoding boundaries
+- [x] Record architecture and inventory in `docs/LOCALIZATION_PLAN.md` and
+  `docs/LOCALIZATION_INVENTORY.md`
 
-**Progress**:
+## Phase 2: Full client localization ✅
 
-- [x] Create `GTanger/smudgy` fork and long-lived local checkout
-- [x] Add `origin`/`upstream` remotes and development branch
-- [x] Lock complete scope, non-scope, load-bearing relationships, and exit gates
-- [x] Record baseline build/test result
-- [x] Inventory first-party visible strings by subsystem
-- [x] Trace settings, errors, fonts, input, Telnet, VT, and wire encoding
-- [x] Select and document the locale-resource implementation
-- [x] Verify Phase 1 exit criteria
-
-**Exit Evidence**: `docs/LOCALIZATION_INVENTORY.md`
-
-**Key Files**:
-
-- `docs/LOCALIZATION_PLAN.md`
-- `Cargo.toml`
-- `ui/src/lib.rs`
-- `ui/src/windows/settings_window.rs`
-- `core/src/models/settings.rs`
-- `core/src/models/server.rs`
-- `core/src/session/connection.rs`
-- `core/src/session/connection/telnet.rs`
-- `core/src/session/connection/vt_processor.rs`
-- `cloud/src/error.rs`
-
-**Known Issues**:
-
-- Upstream formatting baseline has pre-existing rustfmt drift.
-- Full baseline tests block in a Secret Service-dependent core test when run
-  from this headless context; all test targets compile successfully.
-
-## Phase 2: Locale foundation 🔄
-
-**Spec**: `docs/LOCALIZATION_PLAN.md#phase-2-locale-foundation`
-
-**Progress**:
-
-- [x] Add `smudgy_i18n` workspace crate and English fallback
+- [x] Add the `smudgy_i18n` Fluent catalog with English fallback
 - [x] Persist and activate `system` / `en-US` / `zh-TW`
-- [x] Add catalog parity, fallback, interpolation, and migration tests
-- [ ] Convert first-party UI and client feedback by subsystem ← **CURRENT**
-- [ ] Add missing-string inventory gate
+- [x] Localize first-party app shell, settings, connection flows, social/cloud
+  feedback, automations, mapper, validation, and runtime messages
+- [x] Preserve MUD output, player input, package names, author text, source
+  code, and third-party descriptions verbatim
+- [x] Add catalog-key parity, variable parity, missing-key, and visible-literal
+  gates
 
-**Next Action**: Convert the app shell, social/cloud, mapper, and automation
-surfaces, then enforce the missing-string inventory gate.
+## Phase 3: CJK and legacy encoding ✅
 
-## Phase 3: CJK and legacy encoding ⏸️
+- [x] Bundle and license Noto Sans TC and Noto Sans Mono CJK TC
+- [x] Verify embedded family metadata and representative Traditional Chinese
+  glyph coverage
+- [x] Persist per-server UTF-8 / Big5 with UTF-8 migration default
+- [x] Stream-decode after Telnet framing and before VT parsing
+- [x] Encode outbound semantic text while preserving raw protocol bytes
+- [x] Cover split Big5 sequences, malformed input, ANSI, unmappable output,
+  server persistence, and raw-frame invariants
 
-**Spec**: `docs/LOCALIZATION_PLAN.md#phase-3-cjk-and-legacy-encoding`
+## Phase 4: Product verification and publication ✅
 
-**Progress**:
+### Automated evidence
 
-- [x] Bundle licensed Traditional Chinese UI and terminal fonts
-- [x] Verify embedded family names and representative Traditional Chinese glyphs
-- [x] Persist per-server UTF-8 / Big5 choice with UTF-8 migration default
-- [x] Stream-decode inbound text after Telnet framing and before VT parsing
-- [x] Encode outbound semantic text without transcoding raw protocol frames
-- [x] Test split Big5 sequences, malformed input, ANSI, outbound text, and raw frames
-- [ ] Verify CJK terminal cells, wrapping, selection, links, input, and clipboard visually
+- `cargo test -p smudgy_i18n`: 9 passed
+- `cargo test -p smudgy_ui`: 147 passed
+- `cargo test -p smudgy_widgets`: 12 passed
+- `cargo test -p smudgy_core naming`: 8 passed
+- `cargo test -p smudgy_core big5`: 4 passed
+- outbound text vs raw protocol encoding test: 1 passed
+- `cargo test --workspace --all-features --no-run`: all targets compiled
+- `cargo build -p smudgy_ui --bin smudgy`: passed
+- `git diff --check`: passed
 
-## Phase 4: Product verification and publication ⏸️
+### Visual acceptance
 
-**Spec**: `docs/LOCALIZATION_PLAN.md#phase-4-product-verification-and-publication`
+The rebuilt binary was opened and inspected directly in `zh-TW` with isolated
+data. Accepted surfaces include locale selection, embedded CJK fonts, account
+and security states, server/profile forms, UTF-8 and Big5 live loopback
+sessions, ANSI text, CJK input and clipboard, automations, alias editor, map
+editor, localized validation, responsive map scope controls, and the
+`中斷連線` / `重新連線` state actions.
+
+### Publication
+
+- Code branch pushed to `GTanger/smudgy:agent/zh-tw-localization`
+- Draft PR opened: https://github.com/GTanger/smudgy/pull/1
+
+## Baseline limitations
+
+- The upstream workspace has pre-existing broad rustfmt/clippy drift outside
+  this change.
+- A full runtime test pass can block on the existing Secret Service/keyring
+  dependency in a headless session; all workspace/all-feature test targets
+  compile successfully.
+
+## Residue accounting
+
+- Removed the isolated visual-QA data, map state, and screenshots.
+- Stopped the test Smudgy process and UTF-8/Big5 loopback listeners.
+- Removed temporary `xdotool` and `xclip` packages installed for visual QA;
+  did not autoremove pre-existing dependencies.
+- Retained the managed Cargo target cache at
+  `/home/tanger/.cache/tanger/cargo-target` for normal reuse.
+- Retained the intentional long-lived checkout at
+  `/home/tanger/Projects/smudgy-zh-TW`; no repo-local `target/` exists.

@@ -2,7 +2,7 @@
 
 **Current Phase**: Phase 2 - Locale foundation
 **Current Stage**: Implementation
-**Last Checkpoint**: Phase 1 complete on branch (not yet committed)
+**Last Checkpoint**: `43d0b5c` - Phase 1 architecture and inventory
 **Planning Doc**: `docs/LOCALIZATION_PLAN.md`
 
 ## Scope Guard
@@ -56,9 +56,9 @@ automated checks, actual UI inspection, upstream/fork state, and 5S accounting.
 
 **Progress**:
 
-- [ ] Add `smudgy_i18n` workspace crate and English fallback
-- [ ] Persist and activate `system` / `en-US` / `zh-TW`
-- [ ] Add catalog parity, fallback, interpolation, and migration tests
+- [x] Add `smudgy_i18n` workspace crate and English fallback
+- [x] Persist and activate `system` / `en-US` / `zh-TW`
+- [x] Add catalog parity, fallback, interpolation, and migration tests
 - [ ] Convert first-party UI and client feedback by subsystem ← **CURRENT**
 - [ ] Add missing-string inventory gate
 

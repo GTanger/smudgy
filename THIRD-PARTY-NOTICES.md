@@ -16,6 +16,8 @@ Every bundled font is licensed under the **SIL Open Font License, Version 1.1**
 - **Fira Mono** — Digitized data copyright © 2012–2015 The Mozilla Foundation and Telefónica S.A.
 - **Lilex** — Copyright 2019 The Lilex Project Authors
 - **VT323** — Copyright 2011 The VT323 Project Authors
+- **Noto Sans TC** and **Noto Sans Mono CJK TC** — Copyright 2014–2021 Adobe
+  (http://www.adobe.com/), with Reserved Font Name "Source"
 
 ## Icons
 
@@ -15262,4 +15264,3 @@ the following restrictions:
 
 3. This notice may not be removed or altered from any source distribution.
 ~~~
-

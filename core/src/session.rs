@@ -186,7 +186,7 @@ fn spawn_inner(
     if let Err(e) = ui_tx.try_send(TaggedSessionEvent {
         session_id: params.session_id,
         event: SessionEvent::UpdateBuffer(Arc::new(vec![BufferUpdate::Append(Arc::new(
-            StyledLine::from_echo_str("Loading session..."),
+            StyledLine::from_echo_str(&smudgy_i18n::t!("runtime-loading-session")),
         ))])),
     }) {
         error!("Failed to send initial buffer update: {e:?}");

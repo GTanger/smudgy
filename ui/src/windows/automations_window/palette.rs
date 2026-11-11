@@ -67,16 +67,16 @@ impl AutomationsWindow {
     /// The filtered, ordered palette items (Create → Go → Jump).
     fn palette_items(&self) -> Vec<Item> {
         let mut items = vec![
-            Item { group: "Create", label: "Create alias".into(), status: None, kind: None, message: Message::NewAlias },
-            Item { group: "Create", label: "Create trigger".into(), status: None, kind: None, message: Message::NewTrigger },
-            Item { group: "Create", label: "Create hotkey".into(), status: None, kind: None, message: Message::NewHotkey },
-            Item { group: "Create", label: "Create folder".into(), status: None, kind: None, message: Message::NewFolder },
-            Item { group: "Create", label: "Create module".into(), status: None, kind: None, message: Message::NewModule },
-            Item { group: "Create", label: "Create package".into(), status: None, kind: None, message: Message::NewPackage },
-            Item { group: "Go", label: "Discover packages".into(), status: None, kind: None, message: Message::OpenDiscover },
-            Item { group: "Go", label: "Private & shared packages".into(), status: None, kind: None, message: Message::OpenShared },
-            Item { group: "Go", label: "Session store & events".into(), status: None, kind: None, message: Message::OpenStoreInspector },
-            Item { group: "Go", label: "Reload all scripts".into(), status: None, kind: None, message: Message::Reload },
+            Item { group: smudgy_i18n::ts!("palette-group-create"), label: smudgy_i18n::t!("palette-create-alias"), status: None, kind: None, message: Message::NewAlias },
+            Item { group: smudgy_i18n::ts!("palette-group-create"), label: smudgy_i18n::t!("palette-create-trigger"), status: None, kind: None, message: Message::NewTrigger },
+            Item { group: smudgy_i18n::ts!("palette-group-create"), label: smudgy_i18n::t!("palette-create-hotkey"), status: None, kind: None, message: Message::NewHotkey },
+            Item { group: smudgy_i18n::ts!("palette-group-create"), label: smudgy_i18n::t!("palette-create-folder"), status: None, kind: None, message: Message::NewFolder },
+            Item { group: smudgy_i18n::ts!("palette-group-create"), label: smudgy_i18n::t!("palette-create-module"), status: None, kind: None, message: Message::NewModule },
+            Item { group: smudgy_i18n::ts!("palette-group-create"), label: smudgy_i18n::t!("palette-create-package"), status: None, kind: None, message: Message::NewPackage },
+            Item { group: smudgy_i18n::ts!("palette-group-go"), label: smudgy_i18n::t!("palette-discover-packages"), status: None, kind: None, message: Message::OpenDiscover },
+            Item { group: smudgy_i18n::ts!("palette-group-go"), label: smudgy_i18n::t!("palette-private-shared"), status: None, kind: None, message: Message::OpenShared },
+            Item { group: smudgy_i18n::ts!("palette-group-go"), label: smudgy_i18n::t!("palette-session-store"), status: None, kind: None, message: Message::OpenStoreInspector },
+            Item { group: smudgy_i18n::ts!("palette-group-go"), label: smudgy_i18n::t!("palette-reload-scripts"), status: None, kind: None, message: Message::Reload },
         ];
 
         // Move: when a script is selected (and thus open in the editor), offer a
@@ -87,10 +87,10 @@ impl AutomationsWindow {
             let current = key.folder_name.as_deref();
             if current.is_some() {
                 items.push(Item {
-                    group: "Move",
-                    label: format!("Move {subject} to top level"),
+                    group: smudgy_i18n::ts!("palette-group-move"),
+                    label: smudgy_i18n::t!("palette-move-top", "subject" => subject),
                     status: None,
-                    kind: Some("folder"),
+                    kind: Some(smudgy_i18n::ts!("palette-kind-folder")),
                     message: Message::SetScriptFolder(None),
                 });
             }
@@ -104,10 +104,14 @@ impl AutomationsWindow {
                     NodeStatus::Disabled
                 };
                 items.push(Item {
-                    group: "Move",
-                    label: format!("Move {subject} to {path}"),
+                    group: smudgy_i18n::ts!("palette-group-move"),
+                    label: smudgy_i18n::t!(
+                        "palette-move-folder",
+                        "subject" => subject,
+                        "folder" => &path
+                    ),
                     status: Some(status),
-                    kind: Some("folder"),
+                    kind: Some(smudgy_i18n::ts!("palette-kind-folder")),
                     message: Message::SetScriptFolder(Some(path)),
                 });
             }
@@ -117,19 +121,19 @@ impl AutomationsWindow {
         collect_jump(&self.scripts, "", self, &mut items);
         for pkg in &self.installed_packages {
             items.push(Item {
-                group: "Jump to",
+                group: smudgy_i18n::ts!("palette-group-jump"),
                 label: package_display_name(&pkg.specifier).to_string(),
                 status: Some(self.package_status_for_palette(&pkg.specifier)),
-                kind: Some("package"),
+                kind: Some(smudgy_i18n::ts!("palette-kind-package")),
                 message: Message::SelectInstalledPackage(pkg.specifier.clone()),
             });
         }
         for name in &self.local_packages {
             items.push(Item {
-                group: "Jump to",
+                group: smudgy_i18n::ts!("palette-group-jump"),
                 label: name.clone(),
                 status: Some(NodeStatus::Ok),
-                kind: Some("package"),
+                kind: Some(smudgy_i18n::ts!("palette-kind-package")),
                 message: Message::SelectOwnedPackage(name.clone()),
             });
         }
@@ -217,12 +221,12 @@ impl AutomationsWindow {
             column![
                 row![
                     text(bootstrap_icons::CURSOR).font(fonts::BOOTSTRAP_ICONS).size(13.0).style(common::faint),
-                    text_input("Type a command or search…", &self.palette_query)
+                    text_input(smudgy_i18n::ts!("palette-input-placeholder"), &self.palette_query)
                         .id(palette_input_id())
                         .on_input(Message::PaletteInput)
                         .on_submit(Message::PaletteRun)
                         .size(15.0),
-                    text("Esc").size(11.0).style(common::faint),
+                    text(smudgy_i18n::t!("palette-escape")).size(11.0).style(common::faint),
                 ]
                 .spacing(8.0)
                 .align_y(Vertical::Center),
@@ -273,23 +277,23 @@ fn collect_jump(
                     format!("{parent}/{name}")
                 };
                 items.push(Item {
-                    group: "Jump to",
+                    group: smudgy_i18n::ts!("palette-group-jump"),
                     label: name.clone(),
                     status: None,
-                    kind: Some("folder"),
+                    kind: Some(smudgy_i18n::ts!("palette-kind-folder")),
                     message: Message::SelectFolder(path.clone()),
                 });
                 collect_jump(children, &path, window, items);
             }
             other => {
                 let kind = match other {
-                    Script::Alias(_) => "alias",
-                    Script::Trigger(_) => "trigger",
-                    Script::Hotkey(_) => "hotkey",
-                    Script::Folder(_, _) => "folder",
+                    Script::Alias(_) => smudgy_i18n::ts!("automation-alias"),
+                    Script::Trigger(_) => smudgy_i18n::ts!("automation-trigger"),
+                    Script::Hotkey(_) => smudgy_i18n::ts!("automation-hotkey"),
+                    Script::Folder(_, _) => smudgy_i18n::ts!("palette-kind-folder"),
                 };
                 items.push(Item {
-                    group: "Jump to",
+                    group: smudgy_i18n::ts!("palette-group-jump"),
                     label: name.clone(),
                     status: Some(window.script_status(other)),
                     kind: Some(kind),

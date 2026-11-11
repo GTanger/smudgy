@@ -1605,7 +1605,9 @@ fn op_smudgy_widget_build_text_editor(
                         isolate: isolate.clone(),
                     })
             })
-            .unwrap_or_else(|| iced::widget::text("text editor unavailable").into())
+            .unwrap_or_else(|| {
+                iced::widget::text(smudgy_i18n::t!("widget-text-editor-unavailable")).into()
+            })
         },
         drop_cleanup,
     )
@@ -1687,9 +1689,11 @@ fn op_smudgy_widget_build_map_view(state: &mut OpState) -> Element {
                     }))
                 })
                 .flatten()
-                .unwrap_or_else(|| iced::widget::text("map unavailable").into())
+                .unwrap_or_else(|| {
+                    iced::widget::text(smudgy_i18n::t!("widget-map-unavailable")).into()
+                })
             } else {
-                iced::widget::text("map unavailable (no mapper)").into()
+                iced::widget::text(smudgy_i18n::t!("widget-map-no-mapper")).into()
             }
         },
         drop_cleanup,

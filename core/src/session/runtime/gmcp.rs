@@ -333,9 +333,9 @@ impl GmcpProducer {
                 other => other.to_string(),
             };
             effects.echoes.push(if reason.is_empty() {
-                "GMCP: the server says goodbye.".to_string()
+                smudgy_i18n::t!("runtime-gmcp-goodbye")
             } else {
-                format!("GMCP: the server says goodbye: {reason}")
+                smudgy_i18n::t!("runtime-gmcp-goodbye-reason", "reason" => &reason)
             });
         }
 

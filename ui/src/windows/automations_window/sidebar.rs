@@ -26,7 +26,7 @@ impl AutomationsWindow {
         let new_button = button(
             row![
                 text(bootstrap_icons::PLUS_LG).font(fonts::BOOTSTRAP_ICONS).size(13.0),
-                text("New").size(14.0),
+                text(smudgy_i18n::t!("automations-new")).size(14.0),
                 iced::widget::space::horizontal(),
                 text(bootstrap_icons::CHEVRON_DOWN).font(fonts::BOOTSTRAP_ICONS).size(11.0),
             ]
@@ -51,7 +51,7 @@ impl AutomationsWindow {
         // Search field.
         let mut search_row = row![
             text(bootstrap_icons::SEARCH).font(fonts::BOOTSTRAP_ICONS).size(12.0).style(common::faint),
-            text_input("Search automations…", &self.search)
+            text_input(smudgy_i18n::ts!("automations-search-placeholder"), &self.search)
                 .on_input(Message::SearchChanged)
                 .size(13.0),
         ]
@@ -138,12 +138,12 @@ impl AutomationsWindow {
         };
         container(
             column![
-                item(bootstrap_icons::AT, "Alias", Message::NewAlias),
-                item(bootstrap_icons::LIGHTNING, "Trigger", Message::NewTrigger),
-                item(bootstrap_icons::DPAD, "Hotkey", Message::NewHotkey),
-                item(bootstrap_icons::FOLDER_PLUS, "Folder", Message::NewFolder),
-                item(bootstrap_icons::FONTS, "Module", Message::NewModule),
-                item(bootstrap_icons::BOUNDING_BOX, "Package", Message::NewPackage),
+                item(bootstrap_icons::AT, smudgy_i18n::ts!("automation-alias"), Message::NewAlias),
+                item(bootstrap_icons::LIGHTNING, smudgy_i18n::ts!("automation-trigger"), Message::NewTrigger),
+                item(bootstrap_icons::DPAD, smudgy_i18n::ts!("automation-hotkey"), Message::NewHotkey),
+                item(bootstrap_icons::FOLDER_PLUS, smudgy_i18n::ts!("automation-folder"), Message::NewFolder),
+                item(bootstrap_icons::FONTS, smudgy_i18n::ts!("automation-module"), Message::NewModule),
+                item(bootstrap_icons::BOUNDING_BOX, smudgy_i18n::ts!("automation-package"), Message::NewPackage),
             ]
             .spacing(2.0),
         )
@@ -156,13 +156,13 @@ impl AutomationsWindow {
     fn filter_chips(&self) -> Elem<'_> {
         let counts = self.counts();
         let chips = [
-            (Chip::All, "All", None, None),
-            (Chip::Aliases, "Aliases", Some(counts.aliases), Some(bootstrap_icons::AT)),
-            (Chip::Triggers, "Triggers", Some(counts.triggers), Some(bootstrap_icons::LIGHTNING)),
-            (Chip::Hotkeys, "Hotkeys", Some(counts.hotkeys), Some(bootstrap_icons::DPAD)),
-            (Chip::Folders, "Folders", Some(counts.folders), Some(bootstrap_icons::FOLDER_PLUS)),
-            (Chip::Modules, "Modules", Some(counts.modules), Some(bootstrap_icons::FONTS)),
-            (Chip::Packages, "Packages", Some(counts.packages), Some(bootstrap_icons::BOUNDING_BOX)),
+            (Chip::All, smudgy_i18n::ts!("automations-all"), None, None),
+            (Chip::Aliases, smudgy_i18n::ts!("automations-aliases"), Some(counts.aliases), Some(bootstrap_icons::AT)),
+            (Chip::Triggers, smudgy_i18n::ts!("automations-triggers"), Some(counts.triggers), Some(bootstrap_icons::LIGHTNING)),
+            (Chip::Hotkeys, smudgy_i18n::ts!("automations-hotkeys"), Some(counts.hotkeys), Some(bootstrap_icons::DPAD)),
+            (Chip::Folders, smudgy_i18n::ts!("automations-folders"), Some(counts.folders), Some(bootstrap_icons::FOLDER_PLUS)),
+            (Chip::Modules, smudgy_i18n::ts!("automations-modules-plural"), Some(counts.modules), Some(bootstrap_icons::FONTS)),
+            (Chip::Packages, smudgy_i18n::ts!("automations-packages-plural"), Some(counts.packages), Some(bootstrap_icons::BOUNDING_BOX)),
         ];
         // A wrapping flow of chips: they reflow to as many rows as the sidebar
         // width needs instead of being clipped (the narrow sidebar couldn't fit
@@ -212,12 +212,12 @@ impl AutomationsWindow {
     fn create_new_button(&self) -> Option<Elem<'_>> {
         let (label, msg) = match self.chip {
             Chip::All => return None,
-            Chip::Aliases => ("Alias", Message::NewAlias),
-            Chip::Triggers => ("Trigger", Message::NewTrigger),
-            Chip::Hotkeys => ("Hotkey", Message::NewHotkey),
-            Chip::Folders => ("Folder", Message::NewFolder),
-            Chip::Modules => ("Module", Message::NewModule),
-            Chip::Packages => ("Package", Message::NewPackage),
+            Chip::Aliases => (smudgy_i18n::ts!("automation-alias"), Message::NewAlias),
+            Chip::Triggers => (smudgy_i18n::ts!("automation-trigger"), Message::NewTrigger),
+            Chip::Hotkeys => (smudgy_i18n::ts!("automation-hotkey"), Message::NewHotkey),
+            Chip::Folders => (smudgy_i18n::ts!("automation-folder"), Message::NewFolder),
+            Chip::Modules => (smudgy_i18n::ts!("automation-module"), Message::NewModule),
+            Chip::Packages => (smudgy_i18n::ts!("automation-package"), Message::NewPackage),
         };
         Some(
             button(
@@ -226,7 +226,7 @@ impl AutomationsWindow {
                         .font(fonts::BOOTSTRAP_ICONS)
                         .size(10.0)
                         .style(common::muted),
-                    text(format!("Create new {label}")).size(11.0),
+                    text(smudgy_i18n::t!("automations-create-new", "kind" => label)).size(11.0),
                 ]
                 .spacing(6.0)
                 .align_y(Vertical::Center),
@@ -257,7 +257,7 @@ impl AutomationsWindow {
             let mut rows = Vec::new();
             self.build_script_rows(&self.scripts, 0, "", searching, &mut rows);
             if !rows.is_empty() {
-                col = col.push(section_header("Scripts"));
+                col = col.push(section_header(smudgy_i18n::ts!("automations-scripts")));
                 for r in rows {
                     col = col.push(r);
                 }
@@ -289,7 +289,7 @@ impl AutomationsWindow {
                 }
             }
             if !rows.is_empty() {
-                col = col.push(section_header("Modules"));
+                col = col.push(section_header(smudgy_i18n::ts!("automations-modules-plural")));
                 for r in rows {
                     col = col.push(r);
                 }
@@ -543,11 +543,11 @@ impl AutomationsWindow {
         }
 
         if !installed_rows.is_empty() {
-            out.push(section_header("Packages"));
+            out.push(section_header(smudgy_i18n::ts!("automations-packages-plural")));
             out.append(&mut installed_rows);
         }
         if !local_rows.is_empty() {
-            out.push(section_header("Local"));
+            out.push(section_header(smudgy_i18n::ts!("automations-local")));
             out.append(&mut local_rows);
         }
     }
@@ -1022,7 +1022,7 @@ fn creator_toggle_row<'a>(indent: usize, expanded: bool, total: usize, creator_i
 
 /// The "show N more…" row revealing a creator's remaining automations beyond the cap.
 fn show_more_row<'a>(indent: usize, remaining: usize, creator_id: String) -> Elem<'a> {
-    button(text(format!("Show {remaining} more…")).size(12.0).style(common::faint))
+    button(text(smudgy_i18n::t!("automations-show-more", "count" => remaining)).size(12.0).style(common::faint))
         .style(button_style::list_item)
         .on_press(Message::ToggleCreatorShowAll(creator_id))
         .width(Length::Fill)

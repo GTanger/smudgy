@@ -488,7 +488,7 @@ impl Runtime {
                 // the UI channel; the separate UI thread renders it independently
                 // of this thread's blocking rebuild.
                 runtime.block_on(async {
-                    if let Ok(Some(fut)) = inner.echo_str("Reloading scripts...") {
+                    if let Ok(Some(fut)) = inner.echo_str(&smudgy_i18n::t!("runtime-reloading-scripts")) {
                         let _ = fut.await;
                     }
                 });
@@ -1233,7 +1233,10 @@ impl Inner<'_> {
         if let Some(ref connection) = self.connection
             && let Err(e) = connection.write(arc_socket_str) {
                 warn!("Error writing to connection: {e:?}");
-                self.echo_warn_str(format!("Send error: {e:?}").as_str())?;
+                self.echo_warn_str(&smudgy_i18n::t!(
+                    "runtime-send-error",
+                    "error" => format!("{e:?}")
+                ))?;
             }
 
         self.flush_buffer_updates()
@@ -1268,7 +1271,10 @@ impl Inner<'_> {
         if let Some(ref connection) = self.connection
             && let Err(e) = connection.write(arc_socket_str) {
                 warn!("Error writing to connection: {e:?}");
-                self.echo_warn_str(format!("Send error: {e:?}").as_str())?;
+                self.echo_warn_str(&smudgy_i18n::t!(
+                    "runtime-send-error",
+                    "error" => format!("{e:?}")
+                ))?;
             }
 
         self.flush_buffer_updates()
@@ -1478,7 +1484,7 @@ impl Inner<'_> {
         // session still loads its local maps. Cloud maps join via the sync
         // engine once the user logs in.
         if let Some(mapper) = self.mapper.clone() {
-            self.echo_str_sync("Loading maps...");
+            self.echo_str_sync(&smudgy_i18n::t!("runtime-loading-maps"));
             let started = Instant::now();
             match mapper.load_all_areas().await {
                 Ok(summary) => {
@@ -1498,29 +1504,51 @@ impl Inner<'_> {
                     }
                     let total = summary.areas.len();
                     if total == 0 {
-                        self.echo_str_sync("No maps to load.");
+                        self.echo_str_sync(&smudgy_i18n::t!("runtime-no-maps"));
                     } else {
                         let shared = summary.areas.iter().filter(|s| s.shared).count();
                         let owned = total - shared;
-                        let breakdown = if shared > 0 {
-                            format!(" ({owned} owned, {shared} shared)")
+                        let elapsed_ms = elapsed.as_millis();
+                        let message = if shared > 0 && total == 1 {
+                            smudgy_i18n::t!(
+                                "runtime-map-loaded-with-shared",
+                                "total" => total,
+                                "owned" => owned,
+                                "shared" => shared,
+                                "milliseconds" => elapsed_ms
+                            )
+                        } else if shared > 0 {
+                            smudgy_i18n::t!(
+                                "runtime-maps-loaded-with-shared",
+                                "total" => total,
+                                "owned" => owned,
+                                "shared" => shared,
+                                "milliseconds" => elapsed_ms
+                            )
+                        } else if total == 1 {
+                            smudgy_i18n::t!(
+                                "runtime-map-loaded",
+                                "total" => total,
+                                "milliseconds" => elapsed_ms
+                            )
                         } else {
-                            String::new()
+                            smudgy_i18n::t!(
+                                "runtime-maps-loaded",
+                                "total" => total,
+                                "milliseconds" => elapsed_ms
+                            )
                         };
-                        self.echo_str_sync(&format!(
-                            "Loaded {total} map area{}{breakdown} in {}ms.",
-                            if total == 1 { "" } else { "s" },
-                            elapsed.as_millis()
-                        ));
+                        self.echo_str_sync(&message);
                     }
                 }
                 Err(e) if e.is_auth_error() => {
-                    self.echo_warn_str_sync(
-                        "Maps are unavailable. Sign in or create a smudgy account to use this feature.",
-                    );
+                    self.echo_warn_str_sync(&smudgy_i18n::t!("runtime-maps-auth-required"));
                 }
                 Err(e) => {
-                    self.echo_warn_str_sync(&format!("Failed to load maps: {e}"));
+                    self.echo_warn_str_sync(&smudgy_i18n::t!(
+                        "runtime-maps-load-failed",
+                        "error" => e
+                    ));
                 }
             }
         }
@@ -1724,7 +1752,10 @@ impl Inner<'_> {
                     }
                     Err(err) => {
                         warn!("Error in runtime: {err:?}");
-                        self.echo_str_sync(format!("Error in runtime: {err:?}").as_str());
+                        self.echo_str_sync(&smudgy_i18n::t!(
+                            "runtime-error",
+                            "error" => format!("{err:?}")
+                        ));
                     }
                 }
 
@@ -1754,7 +1785,7 @@ impl Inner<'_> {
                         trace!("Spliced spawned actions into current frame");
                     } else if action_stack.len() >= MAX_STACK_DEPTH {
                         warn!("Maximum action stack depth exceeded: {MAX_STACK_DEPTH}");
-                        self.echo_str_sync("Error: Maximum execution depth exceeded");
+                        self.echo_str_sync(&smudgy_i18n::t!("runtime-max-depth"));
                     } else {
                         action_stack.push(VecDeque::from(spawned));
                         trace!(

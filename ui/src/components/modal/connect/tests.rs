@@ -64,6 +64,7 @@ fn test_submit_server_form_create_valid() {
         name: "MyMUD".to_string(),
         host: "mud.example.com".to_string(),
         port: "4000".to_string(),
+        ..Default::default()
     };
 
     // The task is not asserted directly. Its effect is tested via Message::ServerCreated.
@@ -81,6 +82,7 @@ fn test_submit_server_form_create_invalid_port() {
         name: "MyMUD".to_string(),
         host: "mud.example.com".to_string(),
         port: "invalid_port".to_string(),
+        ..Default::default()
     };
 
     // The task is not asserted directly. No task should be spawned.
@@ -102,6 +104,7 @@ fn test_submit_server_form_create_empty_name() {
         name: "".to_string(),
         host: "mud.example.com".to_string(),
         port: "4000".to_string(),
+        ..Default::default()
     };
 
     let (_task, event) = update(&mut state, Message::SubmitServerForm);
@@ -111,6 +114,42 @@ fn test_submit_server_form_create_empty_name() {
     assert_eq!(
         state.server_crud_error.as_ref().unwrap(),
         "Server name cannot be empty."
+    );
+}
+
+#[test]
+fn test_submit_server_form_rejects_untranslated_core_name_error_early() {
+    let mut state = initial_state();
+    state.server_action = Some(ServerCrudAction::Create);
+    state.server_form_data = ServerConfigFormData {
+        name: "My MUD".to_string(),
+        host: "mud.example.com".to_string(),
+        port: "4000".to_string(),
+        ..Default::default()
+    };
+
+    let (_task, event) = update(&mut state, Message::SubmitServerForm);
+
+    assert!(event.is_none());
+    assert_eq!(
+        state.server_crud_error.as_deref(),
+        Some("Server name may contain only letters, numbers, underscores, and hyphens.")
+    );
+}
+
+#[test]
+fn test_submit_profile_form_rejects_untranslated_core_name_error_early() {
+    let mut state = initial_state();
+    state.selected_server = Some("MyMUD".to_string());
+    state.profile_action = Some(ProfileCrudAction::Create);
+    state.profile_form_data.name = "My Character".to_string();
+
+    let (_task, event) = update(&mut state, Message::SubmitProfileForm);
+
+    assert!(event.is_none());
+    assert_eq!(
+        state.profile_crud_error.as_deref(),
+        Some("Profile name may contain only letters, numbers, underscores, and hyphens.")
     );
 }
 

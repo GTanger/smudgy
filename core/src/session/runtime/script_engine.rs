@@ -772,13 +772,10 @@ impl<'a> ScriptEngine<'a> {
                     ui_tx,
                     session_id,
                     emitted_line_count,
-                    &format!(
-                        "[interop] smudgy://{owner}/{name} was code-imported, so its interop \
-                         handle exports were removed from this copy \u{2014} import them from \
-                         smudgy:state/{owner}/{name}, smudgy:events/{owner}/{name}, or \
-                         smudgy:procedures/{owner}/{name} instead.",
-                        owner = key.owner,
-                        name = key.name
+                    &smudgy_i18n::t!(
+                        "runtime-interop-handles-removed",
+                        "owner" => &key.owner,
+                        "name" => &key.name
                     ),
                 );
             } else if installed
@@ -788,11 +785,10 @@ impl<'a> ScriptEngine<'a> {
                     ui_tx,
                     session_id,
                     emitted_line_count,
-                    &format!(
-                        "[interop] you code-imported smudgy://{}/{}, which is installed \u{2014} \
-                         this copy duplicates the installed instance's side effects and cannot \
-                         publish state or events. Import types only, or read its published state.",
-                        key.owner, key.name
+                    &smudgy_i18n::t!(
+                        "runtime-interop-duplicate-installed",
+                        "owner" => &key.owner,
+                        "name" => &key.name
                     ),
                 );
             }
@@ -811,14 +807,10 @@ impl<'a> ScriptEngine<'a> {
                         ui_tx,
                         session_id,
                         emitted_line_count,
-                        &format!(
-                            "[interop] a user script or local module code-imported \
-                             smudgy://{owner}/{name}, which declares interop handles. The import \
-                             works (this is the package's home), but writes through those handles \
-                             publish AS the package \u{2014} prefer smudgy:state/{owner}/{name} \
-                             (and events/procedures) unless that attribution is intended.",
-                            owner = key.owner,
-                            name = key.name
+                        &smudgy_i18n::t!(
+                            "runtime-interop-attribution",
+                            "owner" => &key.owner,
+                            "name" => &key.name
                         ),
                     );
                 }
@@ -850,10 +842,10 @@ impl<'a> ScriptEngine<'a> {
                     ui_tx,
                     session_id,
                     emitted_line_count,
-                    &format!(
-                        "[package] {} not loaded: required param(s) {} are unset \u{2014} configure them in settings",
-                        spec.name,
-                        missing.join(", ")
+                    &smudgy_i18n::t!(
+                        "runtime-package-required-params-missing",
+                        "name" => &spec.name,
+                        "params" => missing.join(", ")
                     ),
                 );
                 blocked.insert(spec.package_key());
@@ -895,7 +887,11 @@ impl<'a> ScriptEngine<'a> {
                     ui_tx,
                     session_id,
                     emitted_line_count,
-                    &format!("[package] {} not loaded \u{2014} {reason}.", spec.name),
+                    &smudgy_i18n::t!(
+                        "runtime-package-not-loaded-reason",
+                        "name" => &spec.name,
+                        "reason" => reason
+                    ),
                 );
                 blocked.insert(spec.package_key());
             }
@@ -1243,7 +1239,10 @@ impl<'a> ScriptEngine<'a> {
                     &params.ui_tx,
                     params.session_id,
                     &params.emitted_line_count,
-                    &format!("[packages] failed to load modules \u{2014} {e:#}"),
+                    &smudgy_i18n::t!(
+                        "runtime-packages-modules-load-failed",
+                        "error" => format!("{e:#}")
+                    ),
                 );
             }
         }
@@ -1352,11 +1351,9 @@ impl<'a> ScriptEngine<'a> {
                                     &params.ui_tx,
                                     params.session_id,
                                     &params.emitted_line_count,
-                                    &format!(
-                                        "[package] {} not loaded \u{2014} the available versions need more \
-                                         permissions than you've granted. Open Automations to review and \
-                                         grant the update.",
-                                        spec.name
+                                    &smudgy_i18n::t!(
+                                        "runtime-package-needs-permissions",
+                                        "name" => &spec.name
                                     ),
                                 );
                                 continue;
@@ -1366,9 +1363,10 @@ impl<'a> ScriptEngine<'a> {
                                     &params.ui_tx,
                                     params.session_id,
                                     &params.emitted_line_count,
-                                    &format!(
-                                        "[package] {} not loaded \u{2014} {reason}.",
-                                        spec.name
+                                    &smudgy_i18n::t!(
+                                        "runtime-package-not-loaded-reason",
+                                        "name" => &spec.name,
+                                        "reason" => reason
                                     ),
                                 );
                                 continue;
@@ -1382,11 +1380,9 @@ impl<'a> ScriptEngine<'a> {
                                     &params.ui_tx,
                                     params.session_id,
                                     &params.emitted_line_count,
-                                    &format!(
-                                        "[package] {} not loaded \u{2014} no version of it could be found \
-                                         (it may have been deleted or unpublished, or the cloud is \
-                                         unreachable). Open Automations to remove or reinstall it.",
-                                        spec.name
+                                    &smudgy_i18n::t!(
+                                        "runtime-package-no-version",
+                                        "name" => &spec.name
                                     ),
                                 );
                                 continue;
@@ -1422,7 +1418,11 @@ impl<'a> ScriptEngine<'a> {
                             &params.ui_tx,
                             params.session_id,
                             &params.emitted_line_count,
-                            &format!("[package] {} not loaded \u{2014} {e}", spec.name),
+                            &smudgy_i18n::t!(
+                                "runtime-package-not-loaded-error",
+                                "name" => &spec.name,
+                                "error" => e
+                            ),
                         );
                         continue;
                     }
@@ -1474,9 +1474,10 @@ impl<'a> ScriptEngine<'a> {
                             &params.ui_tx,
                             params.session_id,
                             &params.emitted_line_count,
-                            &format!(
-                                "[package] {} failed to build its permission sandbox \u{2014} {e:#}",
-                                spec.name
+                            &smudgy_i18n::t!(
+                                "runtime-package-sandbox-build-failed",
+                                "name" => &spec.name,
+                                "error" => format!("{e:#}")
                             ),
                         );
                         continue;
@@ -1504,9 +1505,10 @@ impl<'a> ScriptEngine<'a> {
                             &params.ui_tx,
                             params.session_id,
                             &params.emitted_line_count,
-                            &format!(
-                                "[package] {} failed to start its isolate \u{2014} {e:#}",
-                                spec.name
+                            &smudgy_i18n::t!(
+                                "runtime-package-isolate-start-failed",
+                                "name" => &spec.name,
+                                "error" => format!("{e:#}")
                             ),
                         );
                         continue;
@@ -1544,7 +1546,11 @@ impl<'a> ScriptEngine<'a> {
                             &params.ui_tx,
                             params.session_id,
                             &params.emitted_line_count,
-                            &format!("[package] {} failed to load \u{2014} {e:#}", spec.name),
+                            &smudgy_i18n::t!(
+                                "runtime-package-load-failed",
+                                "name" => &spec.name,
+                                "error" => format!("{e:#}")
+                            ),
                         );
                         // Partial evaluation before the throw can have queued automation/script
                         // actions (a top-level `createTrigger`, or a code-imported dependency's
@@ -1609,7 +1615,7 @@ impl<'a> ScriptEngine<'a> {
                     &params.ui_tx,
                     params.session_id,
                     &params.emitted_line_count,
-                    &format!("[package] {name} not loaded: no package backend for this session"),
+                    &smudgy_i18n::t!("runtime-package-no-backend", "name" => &name),
                 );
             }
         }
@@ -1625,10 +1631,11 @@ impl<'a> ScriptEngine<'a> {
                 &params.ui_tx,
                 params.session_id,
                 &params.emitted_line_count,
-                &format!(
-                    "Loaded {local_count} script module{}.",
-                    if local_count == 1 { "" } else { "s" }
-                ),
+                &if local_count == 1 {
+                    smudgy_i18n::t!("runtime-script-module-loaded", "count" => local_count)
+                } else {
+                    smudgy_i18n::t!("runtime-script-modules-loaded", "count" => local_count)
+                },
             );
         }
         if !package_lines.is_empty() {
@@ -1636,12 +1643,19 @@ impl<'a> ScriptEngine<'a> {
                 &params.ui_tx,
                 params.session_id,
                 &params.emitted_line_count,
-                &format!(
-                    "Loaded {} package{}: {}.",
-                    package_lines.len(),
-                    if package_lines.len() == 1 { "" } else { "s" },
-                    package_lines.join(", ")
-                ),
+                &if package_lines.len() == 1 {
+                    smudgy_i18n::t!(
+                        "runtime-package-loaded",
+                        "count" => package_lines.len(),
+                        "packages" => package_lines.join(", ")
+                    )
+                } else {
+                    smudgy_i18n::t!(
+                        "runtime-packages-loaded",
+                        "count" => package_lines.len(),
+                        "packages" => package_lines.join(", ")
+                    )
+                },
             );
         }
         // Auto-update + duplicate-version notices are cloud-provider-only and PER-ISOLATE: main
@@ -1660,7 +1674,12 @@ impl<'a> ScriptEngine<'a> {
                         &params.ui_tx,
                         params.session_id,
                         &params.emitted_line_count,
-                        &format!("[package] {name} updated {from} \u{2192} {to}"),
+                        &smudgy_i18n::t!(
+                            "runtime-package-updated",
+                            "name" => &name,
+                            "from" => &from,
+                            "to" => &to
+                        ),
                     );
                 }
             }
@@ -1672,11 +1691,11 @@ impl<'a> ScriptEngine<'a> {
                         &params.ui_tx,
                         params.session_id,
                         &params.emitted_line_count,
-                        &format!(
-                            "[package] warning: {} loaded at {} coexisting versions ({}) \u{2014} side effects may collide; consider forking or pinning",
-                            package.name,
-                            versions.len(),
-                            versions.join(", ")
+                        &smudgy_i18n::t!(
+                            "runtime-package-duplicate-versions",
+                            "name" => &package.name,
+                            "count" => versions.len(),
+                            "versions" => versions.join(", ")
                         ),
                     );
                 }
